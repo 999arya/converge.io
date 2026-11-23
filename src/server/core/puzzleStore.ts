@@ -180,7 +180,9 @@ export async function getPuzzle(puzzleId?: string): Promise<Puzzle | null> {
  */
 export function getTodayPuzzleId(): string {
   const now = new Date();
-  return now.toISOString().split('T')[0];
+  const isoString = now.toISOString();
+  const datePart = isoString.split('T')[0];
+  return datePart ?? new Date().toISOString().split('T')[0] ?? '2024-01-01';
 }
 
 /**
@@ -210,8 +212,8 @@ export async function getSession(
 /**
  * Save player's grouping attempt
  */
-export async function saveSession(session: GameSession): Promise<void> {
-  const key = `${KEYS.SESSION}${session.puzzleId}`; // Note: need userId too
+export async function saveSession(userId: string, session: GameSession): Promise<void> {
+  const key = `${KEYS.SESSION}${userId}:${session.puzzleId}`;
   await redis.set(key, JSON.stringify(session));
 }
 
@@ -281,6 +283,17 @@ export async function submitAnswer(
     session.score = score;
     session.streak = streak;
     await redis.set(sessionKey, JSON.stringify(session));
+  } else {
+    // Create new session if none exists
+    const newSession: GameSession = {
+      puzzleId,
+      playerGroups,
+      startedAt: Date.now(),
+      submittedAt: Date.now(),
+      score,
+      streak,
+    };
+    await redis.set(sessionKey, JSON.stringify(newSession));
   }
 
   return score;
@@ -296,15 +309,16 @@ async function updateStreak(userId: string, won: boolean): Promise<number> {
   // Check if already played today
   const alreadyPlayed = await redis.get(playedKey);
   if (alreadyPlayed) {
-    const currentStreak = (await redis.get(streakKey)) ? parseInt(await redis.get(streakKey)!) : 0;
-    return currentStreak;
+    const streakVal = await redis.get(streakKey);
+    return streakVal ? parseInt(streakVal, 10) : 0;
   }
 
   // Mark as played today
   await redis.set(playedKey, '1');
 
   if (won) {
-    const currentStreak = (await redis.get(streakKey)) ? parseInt(await redis.get(streakKey)!) : 0;
+    const streakVal = await redis.get(streakKey);
+    const currentStreak = streakVal ? parseInt(streakVal, 10) : 0;
     const newStreak = currentStreak + 1;
     await redis.set(streakKey, newStreak.toString());
     return newStreak;
@@ -321,7 +335,7 @@ async function updateStreak(userId: string, won: boolean): Promise<number> {
 export async function getStreak(userId: string): Promise<number> {
   const streakKey = `${KEYS.STREAK}${userId}`;
   const streak = await redis.get(streakKey);
-  return streak ? parseInt(streak) : 0;
+  return streak ? parseInt(streak, 10) : 0;
 }
 
 /**

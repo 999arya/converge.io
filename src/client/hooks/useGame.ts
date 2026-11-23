@@ -4,19 +4,27 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import type { Puzzle, PuzzlePost, PlayerGroup, GameSession, GameScore } from '../../shared/gameTypes';
 
-interface GameState {
-  puzzle: Puzzle | null;
-  session: GameSession | null;
-  score: GameScore | null;
-  loading: boolean;
-  error: string | null;
-  phase: 'loading' | 'playing' | 'submitted' | 'revealed';
+// Safe array access helper
+function getArrayElement<T>(arr: T[], index: number): T | undefined {
+  return index >= 0 && index < arr.length ? arr[index] : undefined;
 }
 
 export const useGame = () => {
-  const [state, setState] = useState<GameState>({
+  const [state, setState] = useState<{
+    puzzle: {
+      id: string;
+      date: string;
+      posts: { id: string; title: string; author: string; subreddit: string; score: number; thumbnailUrl?: string; permalink: string; isCorrectGroup?: number }[];
+      groups: { id: number; theme: string; subreddit: string; postIds: string[]; description: string }[];
+      crossPollination?: { postId: string; connectsGroups: number[]; bonusDescription: string }[];
+    } | null;
+    session: { playerGroups: { groupId: number; postIds: string[] }[]; streak?: number } | null;
+    score: { correctGroups: number; totalGroups: number; correctPosts: number; totalPosts: number; crossPollinationFound: boolean; streak: number; flairTier: string } | null;
+    loading: boolean;
+    error: string | null;
+    phase: 'loading' | 'playing' | 'submitted' | 'revealed';
+  }>({
     puzzle: null,
     session: null,
     score: null,
@@ -30,7 +38,7 @@ export const useGame = () => {
     const loadPuzzle = async () => {
       try {
         const res = await fetch('/api/game/puzzle');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         if (data.puzzle) {
           setState((prev) => ({
@@ -67,62 +75,94 @@ export const useGame = () => {
     setState((prev) => {
       if (!prev.puzzle || prev.phase !== 'playing') return prev;
 
-      const newPlayerGroups = [...(prev.session?.playerGroups ?? [])];
+      const newPlayerGroups = [...(prev.session?.playerGroups ?? [])] as { groupId: number; postIds: string[] }[];
 
       // Find if post is already in a group
       let existingGroupIndex = -1;
-      let existingPostIndex = -1;
       for (let i = 0; i < newPlayerGroups.length; i++) {
-        const idx = newPlayerGroups[i].postIds.indexOf(postId);
-        if (idx !== -1) {
+        const group = newPlayerGroups[i];
+        if (!group) continue;
+        if (group.postIds.includes(postId)) {
           existingGroupIndex = i;
-          existingPostIndex = idx;
           break;
         }
       }
 
       // If post already in this group, remove it
-      if (existingGroupIndex !== -1 && newPlayerGroups[existingGroupIndex].groupId === groupId) {
-        const updatedGroup = { ...newPlayerGroups[existingGroupIndex] };
-        updatedGroup.postIds = updatedGroup.postIds.filter((id) => id !== postId);
-        if (updatedGroup.postIds.length === 0) {
-          newPlayerGroups.splice(existingGroupIndex, 1);
-        } else {
-          newPlayerGroups[existingGroupIndex] = updatedGroup;
+      if (existingGroupIndex !== -1) {
+        const group = getArrayElement(newPlayerGroups, existingGroupIndex);
+        if (!group) return prev;
+        if (group.groupId === groupId) {
+          const updatedPostIds = group.postIds.filter((id) => id !== postId);
+          if (updatedPostIds.length === 0) {
+            newPlayerGroups.splice(existingGroupIndex, 1);
+          } else {
+            newPlayerGroups[existingGroupIndex] = { groupId: group.groupId, postIds: updatedPostIds };
+          }
         }
-      }
-      // If post in different group, move it
-      else if (existingGroupIndex !== -1) {
-        // Remove from old group
-        const oldGroup = { ...newPlayerGroups[existingGroupIndex] };
-        oldGroup.postIds = oldGroup.postIds.filter((id) => id !== postId);
-        if (oldGroup.postIds.length === 0) {
-          newPlayerGroups.splice(existingGroupIndex, 1);
-        } else {
-          newPlayerGroups[existingGroupIndex] = oldGroup;
-        }
+        // If post in different group, move it
+        else {
+          // Remove from old group
+          const oldGroup = getArrayElement(newPlayerGroups, existingGroupIndex);
+          if (!oldGroup) return prev;
+          const updatedPostIds = oldGroup.postIds.filter((id) => id !== postId);
+          if (updatedPostIds.length === 0) {
+            newPlayerGroups.splice(existingGroupIndex, 1);
+          } else {
+            newPlayerGroups[existingGroupIndex] = { groupId: oldGroup.groupId, postIds: updatedPostIds };
+          }
 
-        // Add to new group
-        const targetIndex = newPlayerGroups.findIndex((g) => g.groupId === groupId);
-        if (targetIndex !== -1) {
-          newPlayerGroups[targetIndex] = {
-            ...newPlayerGroups[targetIndex],
-            postIds: [...newPlayerGroups[targetIndex].postIds, postId],
-          };
-        } else {
-          newPlayerGroups.push({ groupId, postIds: [postId] });
+          // Add to new group
+          const targetIndex = newPlayerGroups.findIndex((g) => g.groupId === groupId);
+          if (targetIndex !== -1) {
+            const targetGroup = getArrayElement(newPlayerGroups, targetIndex);
+            if (targetGroup) {
+              newPlayerGroups[targetIndex] = { groupId, postIds: [...targetGroup.postIds, postId] };
+            }
+          } else {
+            newPlayerGroups.push({ groupId, postIds: [postId] });
+          }
         }
       }
       // Post not in any group, add it
       else {
         const targetIndex = newPlayerGroups.findIndex((g) => g.groupId === groupId);
         if (targetIndex !== -1) {
-          newPlayerGroups[targetIndex] = {
-            ...newPlayerGroups[targetIndex],
-            postIds: [...newPlayerGroups[targetIndex].postIds, postId],
-          };
+          const targetGroup = getArrayElement(newPlayerGroups, targetIndex);
+          if (targetGroup) {
+            newPlayerGroups[targetIndex] = { groupId, postIds: [...targetGroup.postIds, postId] };
+          }
         } else {
           newPlayerGroups.push({ groupId, postIds: [postId] });
+        }
+      }
+
+      return {
+        ...prev,
+        session: prev.session ? { ...prev.session, playerGroups: newPlayerGroups } : null,
+      };
+    });
+  }, []);
+
+  // Remove post from its group
+  const removePostFromGroup = useCallback((postId: string) => {
+    setState((prev) => {
+      if (!prev.puzzle || prev.phase !== 'playing') return prev;
+
+      const newPlayerGroups = [...(prev.session?.playerGroups ?? [])] as { groupId: number; postIds: string[] }[];
+
+      for (let i = 0; i < newPlayerGroups.length; i++) {
+        const group = getArrayElement(newPlayerGroups, i);
+        if (!group) continue;
+        const idx = group.postIds.indexOf(postId);
+        if (idx !== -1) {
+          const updatedPostIds = group.postIds.filter((id) => id !== postId);
+          if (updatedPostIds.length === 0) {
+            newPlayerGroups.splice(i, 1);
+          } else {
+            newPlayerGroups[i] = { groupId: group.groupId, postIds: updatedPostIds };
+          }
+          break;
         }
       }
 
@@ -144,8 +184,8 @@ export const useGame = () => {
 
   // Get posts in a group
   const getPostsInGroup = useCallback(
-    (groupId: number): PuzzlePost[] => {
-      if (!state.puzzle) return [];
+    (groupId: number) => {
+      if (!state.puzzle) return [] as { id: string; title: string; author: string; subreddit: string; score: number; thumbnailUrl?: string; permalink: string; isCorrectGroup?: number }[];
       const group = state.session?.playerGroups.find((g) => g.groupId === groupId);
       if (!group) return [];
       return state.puzzle.posts.filter((p) => group.postIds.includes(p.id));
@@ -179,7 +219,7 @@ export const useGame = () => {
         }),
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
       setState((prev) => ({
@@ -217,6 +257,7 @@ export const useGame = () => {
   return {
     ...state,
     togglePostInGroup,
+    removePostFromGroup,
     isPostInGroup,
     getPostsInGroup,
     allPostsGrouped,
@@ -226,4 +267,4 @@ export const useGame = () => {
     groupedCount: state.session?.playerGroups.reduce((sum, g) => sum + g.postIds.length, 0) ?? 0,
     totalPosts: state.puzzle?.posts.length ?? 0,
   };
-};
+}

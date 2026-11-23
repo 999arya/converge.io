@@ -3,17 +3,15 @@
  */
 
 import { Hono } from 'hono';
-import { context, redis } from '@devvit/web/server';
+import { context } from '@devvit/web/server';
 import type {
-  GetPuzzleRequest,
   GetPuzzleResponse,
   SubmitGroupsRequest,
   SubmitGroupsResponse,
   GetStreakResponse,
-  Puzzle,
-  GameSession,
-  GameScore,
-} from '../../shared/gameTypes';
+  ErrorResponse,
+} from '../../shared/api';
+import type { Puzzle } from '../../shared/gameTypes';
 import {
   getPuzzle,
   getSession,
@@ -22,11 +20,6 @@ import {
   getTodayPuzzleId,
   seedPuzzles,
 } from '../core/puzzleStore';
-
-type ErrorResponse = {
-  status: 'error';
-  message: string;
-};
 
 export const gameApi = new Hono();
 
@@ -68,7 +61,7 @@ gameApi.get('/puzzle', async (c) => {
     // Return puzzle without revealing groups (hide isCorrectGroup, groups details)
     const safePuzzle: Puzzle = {
       ...puzzle,
-      posts: puzzle.posts.map((p) => ({ ...p, isCorrectGroup: undefined })),
+      posts: puzzle.posts.map((p) => ({ ...p, isCorrectGroup: 0 })),
       groups: puzzle.groups.map((g) => ({
         ...g,
         postIds: [], // Hide post IDs until reveal

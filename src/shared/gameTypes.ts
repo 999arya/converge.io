@@ -12,7 +12,7 @@ export interface PuzzlePost {
   score: number;
   thumbnailUrl?: string;
   permalink: string;
-  isCorrectGroup: number; // 0, 1, 2 for which group this belongs to
+  isCorrectGroup?: number; // 0, 1, 2 for which group this belongs to (hidden from player)
 }
 
 // A group of related posts (the hidden connection)
@@ -105,9 +105,17 @@ export type FlairTier = typeof FLAIR_TIERS[number]['tier'];
 // Helper to get flair tier from streak
 export function getFlairTier(streak: number): FlairTier {
   for (let i = FLAIR_TIERS.length - 1; i >= 0; i--) {
-    if (streak >= FLAIR_TIERS[i].minStreak) {
-      return FLAIR_TIERS[i].tier;
+    const tier = FLAIR_TIERS[i];
+    if (tier && streak >= tier.minStreak) {
+      return tier.tier;
     }
   }
-  return FLAIR_TIERS[0].tier;
+  return FLAIR_TIERS[0]?.tier ?? 'Novice';
+}
+
+/**
+ * Safe array access helper
+ */
+export function getFirst<T>(arr: T[]): T | undefined {
+  return arr[0];
 }

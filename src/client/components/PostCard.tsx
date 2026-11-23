@@ -7,7 +7,7 @@ import type { PuzzlePost } from '../../shared/gameTypes';
 interface PostCardProps {
   post: PuzzlePost;
   selectedGroup: number | null; // Which group this post is assigned to (0,1,2 or null)
-  onSelect: (groupId: number) => void;
+  onSelect: (groupId: number | null) => void;
   groupColors: string[];
   disabled?: boolean;
 }
@@ -20,6 +20,7 @@ export const PostCard = ({
   disabled = false,
 }: PostCardProps) => {
   const isSelected = selectedGroup !== null;
+  const groupColor = isSelected ? groupColors[selectedGroup!] : 'transparent';
 
   return (
     <div
@@ -27,18 +28,18 @@ export const PostCard = ({
         disabled ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
       } ${isSelected ? 'ring-2 ring-offset-2' : ''}`}
       style={{
-        borderColor: isSelected ? groupColors[selectedGroup] : 'transparent',
-        boxShadow: isSelected ? `0 0 0 2px ${groupColors[selectedGroup]}, 0 4px 12px rgba(0,0,0,0.1)` : undefined,
+        borderColor: isSelected ? groupColor : 'transparent',
+        boxShadow: isSelected ? `0 0 0 2px ${groupColor}, 0 4px 12px rgba(0,0,0,0.1)` : undefined,
       }}
-      onClick={() => !disabled && onSelect(selectedGroup === null ? 0 : null)}
+      onClick={() => !disabled && onSelect(isSelected ? null : 0)}
     >
       {/* Group indicator badge */}
       {isSelected && (
         <div
           className="absolute -top-2 -right-2 z-10 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-          style={{ backgroundColor: groupColors[selectedGroup] }}
+          style={{ backgroundColor: groupColors[selectedGroup!] }}
         >
-          {selectedGroup + 1}
+          {selectedGroup! + 1}
         </div>
       )}
 
@@ -76,9 +77,9 @@ export const PostCard = ({
       {/* Selected indicator */}
       {isSelected && (
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-medium text-white px-2 py-1 rounded"
-          style={{ backgroundColor: groupColors[selectedGroup] }}
+          style={{ backgroundColor: groupColors[selectedGroup!] }}
         >
-          Group {selectedGroup + 1}
+          Group {selectedGroup! + 1}
         </div>
       )}
     </div>

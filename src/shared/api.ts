@@ -3,6 +3,8 @@
  * Used by both client and server for type-safe communication
  */
 
+import type { Puzzle, GameSession, GameScore, PlayerGroup } from './gameTypes';
+
 // Legacy counter types (kept for reference)
 export type InitResponse = {
   type: 'init';
@@ -29,19 +31,19 @@ export type GetPuzzleRequest = {
 };
 
 export type GetPuzzleResponse = {
-  puzzle: any; // Puzzle type from gameTypes (avoid circular import)
-  session?: any; // GameSession
+  puzzle: Puzzle;
+  session?: GameSession;
 };
 
 export type SubmitGroupsRequest = {
   puzzleId: string;
-  playerGroups: any[]; // PlayerGroup[]
+  playerGroups: PlayerGroup[];
 };
 
 export type SubmitGroupsResponse = {
-  score: any; // GameScore
-  puzzle: any; // Puzzle (full with reveals)
-  session: any; // GameSession
+  score: GameScore;
+  puzzle: Puzzle;
+  session: GameSession;
 };
 
 export type GetStreakResponse = {

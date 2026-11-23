@@ -9,7 +9,7 @@ interface GroupZoneProps {
   groupId: number;
   posts: PuzzlePost[];
   color: string;
-  onPostClick: (postId: string, groupId: number) => void;
+  onPostClick: (postId: string, groupId: number | null) => void;
   disabled?: boolean;
   isComplete?: boolean;
 }

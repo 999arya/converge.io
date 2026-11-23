@@ -5,7 +5,8 @@
 import { useGame } from '../hooks/useGame';
 
 export const Header = () => {
-  const { streak } = useGame();
+  const { session } = useGame();
+  const streak = session?.streak ?? 0;
 
   return (
     <header className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
@@ -25,7 +26,7 @@ export const Header = () => {
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 dark:bg-orange-900/30">
           <span className="text-orange-500 dark:text-orange-400">🔥</span>
           <span className="font-mono font-semibold text-orange-600 dark:text-orange-300">
-            {streak ?? 0}
+            {streak}
           </span>
         </div>
 

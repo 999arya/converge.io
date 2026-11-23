@@ -9,7 +9,56 @@ import type { PuzzlePost } from '../../shared/gameTypes';
 
 // Group colors - distinct and accessible
 const GROUP_COLORS = ['#3b82f6', '#22c55e', '#a855f7']; // Blue, Green, Purple
-const GROUP_LABELS = ['Group 1', 'Group 2', 'Group 3'];
+
+// Type definitions for reveal screen
+interface Score {
+  correctGroups: number;
+  totalGroups: number;
+  correctPosts: number;
+  totalPosts: number;
+  crossPollinationFound: boolean;
+  streak: number;
+  flairTier: string;
+}
+
+interface Group {
+  id: number;
+  theme: string;
+  subreddit: string;
+  postIds: string[];
+  description: string;
+}
+
+interface Puzzle {
+  id: string;
+  date: string;
+  posts: PuzzlePost[];
+  groups: Group[];
+  crossPollination?: { postId: string; connectsGroups: number[]; bonusDescription: string }[];
+}
+
+interface Session {
+  playerGroups: { groupId: number; postIds: string[] }[];
+  streak?: number;
+  score?: Score;
+}
+
+interface RevealScreenProps {
+  puzzle: Puzzle;
+  session: Session;
+}
+
+interface StatCardProps {
+  label: string;
+  value: string;
+  color: string;
+}
+
+interface RevealGroupCardProps {
+  group: Group;
+  puzzle: Puzzle;
+  session: Session;
+}
 
 export const GameBoard = () => {
   const {
@@ -17,6 +66,7 @@ export const GameBoard = () => {
     session,
     phase,
     togglePostInGroup,
+    removePostFromGroup,
     getPostsInGroup,
     allPostsGrouped,
     submitAnswer,
@@ -48,8 +98,8 @@ export const GameBoard = () => {
 
   const handlePostClick = (postId: string, currentGroup: number | null) => {
     if (currentGroup !== null) {
-      // Remove from group (set to null groupId to signal removal)
-      togglePostInGroup(postId, 999); // Special value for removal
+      // Remove from group
+      removePostFromGroup(postId);
     } else {
       // Find first incomplete group
       for (let i = 0; i < 3; i++) {
@@ -126,7 +176,7 @@ export const GameBoard = () => {
           <div className="grid grid-cols-1 gap-3 flex-1">
             {GROUP_COLORS.map((color, i) => {
               const posts = getPostsInGroup(i);
-              const isComplete = posts.length > 0 && posts.length <= 3; // Adjust logic as needed
+              const isComplete = posts.length > 0 && posts.length <= 3;
               return (
                 <GroupZone
                   key={i}
@@ -163,7 +213,7 @@ export const GameBoard = () => {
 /**
  * Reveal Screen - Shows after submission
  */
-const RevealScreen = ({ puzzle, session }: { puzzle: any; session: any }) => {
+const RevealScreen = ({ puzzle, session }: RevealScreenProps) => {
   const { score } = session;
 
   if (!score) return null;
@@ -206,8 +256,8 @@ const RevealScreen = ({ puzzle, session }: { puzzle: any; session: any }) => {
       {/* Group Reveals */}
       <div className="space-y-3 mb-4">
         <h3 className="font-semibold text-gray-900 dark:text-white">Group Reveals</h3>
-        {puzzle.groups.map((group: any) => (
-          <RevealGroupCard key={group.id} group={group} puzzle={puzzle} />
+        {puzzle.groups.map((group) => (
+          <RevealGroupCard key={group.id} group={group} puzzle={puzzle} session={session} />
         ))}
       </div>
 
@@ -217,7 +267,7 @@ const RevealScreen = ({ puzzle, session }: { puzzle: any; session: any }) => {
           <h4 className="font-semibold text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-2">
             💫 Cross-Pollination Bonus!
           </h4>
-          {puzzle.crossPollination.map((cp: any, i: number) => (
+          {puzzle.crossPollination.map((cp, i) => (
             <p key={i} className="text-sm text-gray-700 dark:text-gray-300">
               {cp.bonusDescription}
             </p>
@@ -249,19 +299,19 @@ const RevealScreen = ({ puzzle, session }: { puzzle: any; session: any }) => {
   );
 };
 
-const StatCard = ({ label, value, color }: { label: string; value: string; color: string }) => (
+const StatCard = ({ label, value, color }: StatCardProps) => (
   <div className="p-4 rounded-xl text-center" style={{ backgroundColor: color + '15', borderColor: color + '40' }}>
     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</p>
     <p className="text-3xl font-bold mt-1" style={{ color }}>{value}</p>
   </div>
 );
 
-const RevealGroupCard = ({ group, puzzle }: { group: any; puzzle: any }) => {
+const RevealGroupCard = ({ group, puzzle, session }: RevealGroupCardProps) => {
   const groupColors = ['#3b82f6', '#22c55e', '#a855f7'];
   const color = groupColors[group.id];
-  const groupPosts = puzzle.posts.filter((p: any) => group.postIds.includes(p.id));
-  const playerPosts = session?.playerGroups?.find((g: any) => g.groupId === group.id)?.postIds ?? [];
-  const correctCount = groupPosts.filter((p: any) => playerPosts.includes(p.id)).length;
+  const groupPosts = puzzle.posts.filter((p) => group.postIds.includes(p.id));
+  const playerPosts = session?.playerGroups?.find((g) => g.groupId === group.id)?.postIds ?? [];
+  const correctCount = groupPosts.filter((p) => playerPosts.includes(p.id)).length;
 
   return (
     <div className="rounded-xl p-4" style={{ backgroundColor: color + '10', border: `1px solid ${color}40` }}>
@@ -282,7 +332,7 @@ const RevealGroupCard = ({ group, puzzle }: { group: any; puzzle: any }) => {
       </div>
       <p className="text-sm text-gray-600 dark:text-gray-300">{group.description}</p>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        {groupPosts.map((post: any) => (
+        {groupPosts.map((post) => (
           <div key={post.id} className="text-xs p-2 rounded bg-white dark:bg-gray-800">
             <span className="font-medium">{post.title}</span>
             <div className="flex items-center gap-1 mt-1 text-gray-500 dark:text-gray-400">

@@ -6,7 +6,7 @@
 import './index.css';
 
 import { navigateTo } from '@devvit/web/client';
-import { context, requestExpandedMode } from '@devvit/web/client';
+import { requestExpandedMode } from '@devvit/web/client';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
