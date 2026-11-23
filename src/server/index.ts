@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { createServer, getServerPort } from '@devvit/web/server';
 import { api } from './routes/api';
+import { gameApi } from './routes/gameApi';
 import { forms } from './routes/forms';
 import { menu } from './routes/menu';
 import { triggers } from './routes/triggers';
@@ -14,6 +15,7 @@ internal.route('/form', forms);
 internal.route('/triggers', triggers);
 
 app.route('/api', api);
+app.route('/api/game', gameApi);
 app.route('/internal', internal);
 
 serve({
