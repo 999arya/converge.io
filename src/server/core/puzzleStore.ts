@@ -14,11 +14,12 @@ const KEYS = {
   PLAYED: 'played:',
 } as const;
 
-// Default puzzles for hackathon demo (7 days)
+// Default puzzles for hackathon demo (7 days) - Updated to current week: Nov 24-30, 2026
 const DEFAULT_PUZZLES: Puzzle[] = [
+  // Day 1: Nov 24, 2026 - Fermentation & Temperature Control
   {
-    id: '2024-11-13',
-    date: '2024-11-13',
+    id: '2026-11-24',
+    date: '2026-11-24',
     posts: [
       {
         id: 'p1',
@@ -110,10 +111,10 @@ const DEFAULT_PUZZLES: Puzzle[] = [
       },
     ],
   },
-  // Day 2: Precision & Craft
+  // Day 2: Nov 25, 2026 - Precision & Craft
   {
-    id: '2024-11-14',
-    date: '2024-11-14',
+    id: '2026-11-25',
+    date: '2026-11-25',
     posts: [
       { id: 'p1', title: 'My new Japanese waterstone progression', author: 'SharpEdge', subreddit: 'sharpening', score: 1200, permalink: '/r/sharpening/comments/aaa', isConnected: true },
       { id: 'p2', title: 'Finally got my chisel to mirror polish', author: 'WoodworkerJoe', subreddit: 'woodworking', score: 2100, permalink: '/r/woodworking/comments/bbb', isConnected: true },
@@ -147,10 +148,10 @@ const DEFAULT_PUZZLES: Puzzle[] = [
       },
     ],
   },
-  // Day 3: Urban Decay & Nature
+  // Day 3: Nov 26, 2026 - Urban Decay & Nature
   {
-    id: '2024-11-15',
-    date: '2024-11-15',
+    id: '2026-11-26',
+    date: '2026-11-26',
     posts: [
       { id: 'p1', title: 'Abandoned theater - nature taking over', author: 'UrbexPhoto', subreddit: 'AbandonedPorn', score: 4500, permalink: '/r/AbandonedPorn/comments/ggg', isConnected: true },
       { id: 'p2', title: 'Vines consuming an old factory', author: 'DecayHunter', subreddit: 'UrbanExploration', score: 2800, permalink: '/r/UrbanExploration/comments/hhh', isConnected: true },
@@ -184,10 +185,10 @@ const DEFAULT_PUZZLES: Puzzle[] = [
       },
     ],
   },
-  // Day 4: Analog Craft
+  // Day 4: Nov 27, 2026 - Analog Craft
   {
-    id: '2024-11-16',
-    date: '2024-11-16',
+    id: '2026-11-27',
+    date: '2026-11-27',
     posts: [
       { id: 'p1', title: 'Hand-cut dovetails - 3rd attempt', author: 'JoineryJourney', subreddit: 'woodworking', score: 3200, permalink: '/r/woodworking/comments/mmm', isConnected: true },
       { id: 'p2', title: 'My first hand-forged knife', author: 'SmithyStart', subreddit: 'Blacksmith', score: 2800, permalink: '/r/Blacksmith/comments/nnn', isConnected: true },
@@ -221,10 +222,10 @@ const DEFAULT_PUZZLES: Puzzle[] = [
       },
     ],
   },
-  // Day 5: Micro Worlds
+  // Day 5: Nov 28, 2026 - Micro Worlds
   {
-    id: '2024-11-17',
-    date: '2024-11-17',
+    id: '2026-11-28',
+    date: '2026-11-28',
     posts: [
       { id: 'p1', title: 'Snowflake under microscope - stellar dendrite', author: 'SnowCrystals', subreddit: 'microscopy', score: 5200, permalink: '/r/microscopy/comments/sss', isConnected: true },
       { id: 'p2', title: 'Butterfly wing scales at 500x', author: 'WingWatcher', subreddit: 'microscopy', score: 3100, permalink: '/r/microscopy/comments/ttt', isConnected: true },
@@ -258,10 +259,10 @@ const DEFAULT_PUZZLES: Puzzle[] = [
       },
     ],
   },
-  // Day 6: Night & Light
+  // Day 6: Nov 29, 2026 - Night & Light
   {
-    id: '2024-11-18',
-    date: '2024-11-18',
+    id: '2026-11-29',
+    date: '2026-11-29',
     posts: [
       { id: 'p1', title: 'Milky Way over abandoned gas station', author: 'AstroNomad', subreddit: 'astrophotography', score: 6200, permalink: '/r/astrophotography/comments/yyy', isConnected: true },
       { id: 'p2', title: 'Light painting - orbital tool', author: 'LightPainter', subreddit: 'lightpainting', score: 2800, permalink: '/r/lightpainting/comments/zzz', isConnected: true },
@@ -295,10 +296,10 @@ const DEFAULT_PUZZLES: Puzzle[] = [
       },
     ],
   },
-  // Day 7: Restored & Revived
+  // Day 7: Nov 30, 2026 - Restored & Revived
   {
-    id: '2024-11-19',
-    date: '2024-11-19',
+    id: '2026-11-30',
+    date: '2026-11-30',
     posts: [
       { id: 'p1', title: '1920s waffle iron restoration', author: 'CastIronChef', subreddit: 'castiron', score: 3800, permalink: '/r/castiron/comments/eeee', isConnected: true },
       { id: 'p2', title: 'Vintage tube amp brought back to life', author: 'AudiophileFix', subreddit: 'vintageaudio', score: 2200, permalink: '/r/vintageaudio/comments/ffff', isConnected: true },
@@ -344,12 +345,29 @@ export async function seedPuzzles(): Promise<void> {
 }
 
 /**
- * Get puzzle by ID (defaults to today)
+ * Get puzzle by ID (defaults to today, with fallback to first available)
  */
 export async function getPuzzle(puzzleId?: string): Promise<Puzzle | null> {
-  const id = puzzleId ?? getTodayPuzzleId();
-  const data = await redis.get(`${KEYS.PUZZLE}${id}`);
-  return data ? JSON.parse(data) : null;
+  const requestedId = puzzleId ?? getTodayPuzzleId();
+  
+  // Try requested ID first
+  const data = await redis.get(`${KEYS.PUZZLE}${requestedId}`);
+  if (data) return JSON.parse(data);
+  
+  // Fallback: try today's date
+  if (requestedId !== getTodayPuzzleId()) {
+    const todayData = await redis.get(`${KEYS.PUZZLE}${getTodayPuzzleId()}`);
+    if (todayData) return JSON.parse(todayData);
+  }
+  
+  // Fallback: get first available puzzle
+  for (const puzzle of DEFAULT_PUZZLES) {
+    const data = await redis.get(`${KEYS.PUZZLE}${puzzle.id}`);
+    if (data) return JSON.parse(data);
+  }
+  
+  // Last resort: return first default puzzle (shouldn't happen if seeded)
+  return DEFAULT_PUZZLES[0] ?? null;
 }
 
 /**
@@ -360,7 +378,7 @@ export function getTodayPuzzleId(): string {
   const isoString = now.toISOString();
   const parts = isoString.split('T');
   const datePart = parts[0];
-  return datePart ?? '2024-01-01';
+  return datePart ?? '2026-01-01';
 }
 
 /**
@@ -448,7 +466,7 @@ export async function submitStage1(
 
   // Incorrect
   if (session.stage1Attempts >= 2) {
-    // Second attempt failed - mark as failed but keep stage as STAGE_1
+    // Second attempt failed
     session.stage1Correct = false;
     session.selectedPostIds = selectedPostIds;
     session.stage = 'STAGE_1'; // Keep as STAGE_1, but mark as failed via stage1Correct=false
