@@ -1,10 +1,9 @@
 ﻿/**
- * Converge Game Types - New 5-Post, 2-Stage Specification
- * Core type definitions for the daily puzzle game
+ * Converge Game Types - 5-Post, 2-Stage Specification
+ * Core type definitions shared by client and server.
  */
 
-// A single Reddit post used in the puzzle
-export interface PuzzlePost {
+export type PuzzlePost = {
   id: string;
   title: string;
   author: string;
@@ -12,96 +11,63 @@ export interface PuzzlePost {
   score: number;
   thumbnailUrl?: string;
   permalink: string;
-  content?: string; // Self-text or media description
-  isConnected?: boolean; // Whether this is one of the 3 connected posts (hidden from player)
-}
+  content?: string;
+  isConnected?: boolean;
+};
 
-// The hidden connection between the 3 posts
-export interface Connection {
-  theme: string; // e.g., "Fermentation and Temperature Control"
-  explanation: string; // Detailed explanation shown on reveal
-  connectedPostIds: string[]; // IDs of the 3 connected posts
-  distractorPostIds: string[]; // IDs of the 2 distractor posts
-}
+export type Connection = {
+  theme: string;
+  explanation: string;
+  connectedPostIds: string[];
+  distractorPostIds: string[];
+};
 
-// Complete puzzle definition
-export interface Puzzle {
-  id: string; // e.g., "2024-11-13"
-  date: string; // ISO date string
-  posts: PuzzlePost[]; // 5 posts total
-  connection: Connection; // Hidden connection data
-  subredditQuestions: SubredditQuestion[]; // 3 questions, one per connected post
-}
+export type Puzzle = {
+  id: string;
+  date: string;
+  posts: PuzzlePost[];
+  connection: Connection;
+  subredditQuestions: SubredditQuestion[];
+};
 
-// Subreddit identification question
-export interface SubredditQuestion {
-  postId: string; // The connected post this question is about
-  correctSubreddit: string; // The actual subreddit
-  options: string[]; // 3 options, exactly 1 correct
-}
+export type SubredditQuestion = {
+  postId: string;
+  correctSubreddit: string;
+  options: string[];
+};
 
-// Player's grouping attempt (for backward compatibility with API)
-export interface PlayerGroup {
-  groupId: number; // Which group the player assigned (0, 1, 2)
+export type PublicPuzzlePost = Omit<PuzzlePost, 'subreddit' | 'isConnected'> & {
+  subreddit: string;
+  isConnected?: undefined;
+};
+
+export type PublicSubredditQuestion = Omit<SubredditQuestion, 'correctSubreddit'> & {
+  correctSubreddit?: undefined;
+};
+
+export type DisplaySubredditQuestion = SubredditQuestion | PublicSubredditQuestion;
+
+export type PublicConnection = Connection;
+
+export type PublicPuzzle = Omit<Puzzle, 'posts' | 'connection' | 'subredditQuestions'> & {
+  posts: PublicPuzzlePost[];
+  connection: Connection;
+  subredditQuestions: PublicSubredditQuestion[];
+};
+
+export type PlayerGroup = {
+  groupId: number;
   postIds: string[];
-}
+};
 
-// Player's game session
-export interface GameSession {
-  puzzleId: string;
-  stage: 'STAGE_1' | 'STAGE_2' | 'RESULTS';
-  selectedPostIds: string[]; // Player's current selection (max 3)
-  stage1Attempts: number; // 1 or 2
-  stage1Correct: boolean; // Whether Stage 1 was solved
-  stage2Answers: Stage2Answer[]; // Player's subreddit guesses
-  stage2CurrentQuestion: number; // 0, 1, 2, or 3 (complete)
-  startedAt: number;
-  completedAt?: number;
-  score?: GameScore;
-  streak?: number;
-}
-
-// Player's answer to a subreddit question
-export interface Stage2Answer {
+export type Stage2Answer = {
   postId: string;
   selectedSubreddit: string;
   isCorrect: boolean;
   lockedAt: number;
-}
+};
 
-// Scoring result
-export interface GameScore {
-  connectionSolved: boolean;
-  correctSubredditGuesses: number; // 0-3
-  starsEarned: number; // 0-3
-  streak: number;
-  flairTier: string;
-}
-
-// Flair tiers based on streak
-export const FLAIR_TIERS = [
-  { minStreak: 0, tier: 'Novice', label: 'Novice', minPuzzles: 0 },
-  { minStreak: 1, tier: 'Connector', label: 'Connector', minPuzzles: 5 },
-  { minStreak: 7, tier: 'Pattern Seeker', label: 'Pattern Seeker', minPuzzles: 15 },
-  { minStreak: 14, tier: 'Community Explorer', label: 'Community Explorer', minPuzzles: 30 },
-  { minStreak: 30, tier: 'Converger', label: 'Converger', minPuzzles: 60 },
-] as const;
-
-export type FlairTier = typeof FLAIR_TIERS[number]['tier'];
-
-// Helper to get flair tier from streak
-export function getFlairTier(streak: number): FlairTier {
-  for (let i = FLAIR_TIERS.length - 1; i >= 0; i--) {
-    const tier = FLAIR_TIERS[i];
-    if (tier && streak >= tier.minStreak) {
-      return tier.tier;
-    }
-  }
-  return FLAIR_TIERS[0].tier;
-}
-
-// Game states for explicit state management
-export type GameState = 
+export type GameState =
   | 'INTRO'
   | 'STAGE_1_READY'
   | 'STAGE_1_FIRST_SUBMISSION'
@@ -114,11 +80,58 @@ export type GameState =
   | 'RESULTS'
   | 'COMPLETED';
 
-// Helper to get today's puzzle ID
+export type GameSession = {
+  puzzleId: string;
+  stage: GameState;
+  selectedPostIds: string[];
+  stage1Attempts: number;
+  stage1Correct: boolean;
+  stage2Answers: Stage2Answer[];
+  stage2CurrentQuestion: number;
+  startedAt: number;
+  completedAt?: number;
+  score?: GameScore;
+  streak?: number;
+};
+
+export type GameScore = {
+  connectionSolved: boolean;
+  correctSubredditGuesses: number;
+  starsEarned: number;
+  streak: number;
+  totalCompleted: number;
+  flairTier: string;
+};
+
+export const FLAIR_TIERS = [
+  { minPuzzles: 0, tier: 'Novice', label: 'Novice' },
+  { minPuzzles: 5, tier: 'Connector', label: 'Connector' },
+  { minPuzzles: 15, tier: 'Pattern Seeker', label: 'Pattern Seeker' },
+  { minPuzzles: 30, tier: 'Community Explorer', label: 'Community Explorer' },
+  { minPuzzles: 60, tier: 'Converger', label: 'Converger' },
+] as const;
+
+export type FlairTier = typeof FLAIR_TIERS[number]['tier'];
+
+export function getFlairTier(totalCompleted: number): FlairTier {
+  const novice: FlairTier = 'Novice';
+  for (let i = FLAIR_TIERS.length - 1; i >= 0; i--) {
+    const tier = FLAIR_TIERS[i];
+    if (tier && totalCompleted >= tier.minPuzzles) {
+      return tier.tier;
+    }
+  }
+  return novice;
+}
+
 export function getTodayPuzzleId(): string {
   const now = new Date();
   const isoString = now.toISOString();
   const parts = isoString.split('T');
   const datePart = parts[0];
-  return datePart ?? '2024-01-01';
+  return datePart ?? '2026-11-24';
+}
+
+export function formatSubreddit(subreddit: string): string {
+  return subreddit.startsWith('r/') ? subreddit : `r/${subreddit}`;
 }

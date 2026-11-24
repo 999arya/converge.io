@@ -1,140 +1,89 @@
 # Converge - Daily Puzzle Game for Reddit
 
-A Devvit web application where players group Reddit posts by hidden connections, then discover the theme and subreddit for each group.
+Converge is a Devvit Web interactive post where players find the hidden connection between five Reddit posts, then identify the source subreddit for each connected post.
 
-## Game Concept
+## Game Loop
 
-Each day, players see 7 Reddit posts from 3 different subreddits (names hidden). They must group related posts together. On submit, the reveal shows:
-- The hidden theme connecting each group
-- The actual subreddit each group came from
-- Cross-pollination bonuses for posts that bridge groups
+Each daily puzzle contains:
+
+- 5 Reddit posts
+- 3 connected posts
+- 2 distractors
+- 2 stages
+- Maximum 3 stars
+
+### Stage 1: Find the connection
+
+- The player selects exactly 3 posts.
+- The player gets 2 total attempts.
+- A wrong first attempt reveals how many selected posts were connected and allows one retry.
+- A wrong second attempt ends Stage 1.
+
+### Stage 2: Identify source subreddits
+
+- For each connected post, the player chooses from 3 subreddit options.
+- Each question has one attempt.
+- Answers lock permanently.
+- Each correct answer earns 1 star.
 
 ## Project Structure
 
 ```
 src/
-├── client/                    # Frontend (React, runs in iframe on Reddit)
+├── client/
 │   ├── components/
-│   │   ├── Header.tsx         # Game header with streak/flair
-│   │   ├── PostCard.tsx       # Individual Reddit post card
-│   │   ├── GroupZone.tsx      # Drop zone for a group
-│   │   └── GameBoard.tsx      # Main game grid + reveal screen
-│   ├── hooks/
-│   │   ├── useCounter.ts      # Legacy counter hook (reference)
-│   │   └── useGame.ts         # Main game logic hook
-│   ├── game.tsx               # Expanded view entry point
-│   ├── splash.tsx             # Inline feed view entry point
-│   ├── game.html              # HTML for expanded view
-│   ├── splash.html            # HTML for inline view
-│   ├── index.css              # Tailwind + custom styles
-│   ├── global.ts              # CSS module declarations
-│   └── module.d.ts            # Asset module declarations
-├── server/                    # Backend (Node.js, Hono, tRPC)
-│   ├── core/
-│   │   ├── post.ts            # Legacy post creation (reference)
-│   │   └── puzzleStore.ts     # KV operations for puzzles/sessions/streaks
-│   ├── routes/
-│   │   ├── api.ts             # Legacy counter API (reference)
-│   │   ├── gameApi.ts         # Game API endpoints
-│   │   ├── forms.ts           # Legacy forms (reference)
-│   │   ├── menu.ts            # Legacy menu (reference)
-│   │   └── triggers.ts        # Legacy triggers (reference)
-│   └── index.ts               # Server entry point (Hono app)
-├── shared/                    # Shared types between client/server
-│   ├── api.ts                 # API request/response types
-│   └── gameTypes.ts           # Core game type definitions
-scripts/
-└── seedPuzzles.ts             # Puzzle data for 7-day hackathon demo
+│   │   ├── GameBoard.tsx
+│   │   ├── Header.tsx
+│   │   └── PostCard.tsx
+│   ├── hooks/useGame.ts
+│   ├── game.tsx
+│   └── splash.tsx
+├── server/
+│   ├── core/puzzleStore.ts
+│   ├── routes/gameApi.ts
+│   └── index.ts
+└── shared/
+    ├── api.ts
+    └── gameTypes.ts
 ```
 
-## Game Types (src/shared/gameTypes.ts)
+Puzzle data lives in `src/server/core/puzzleStore.ts`. Puzzles are seeded into KV automatically on first access and on app install, so no manual seed command is needed.
 
-- `PuzzlePost` - Reddit post with metadata
-- `PuzzleGroup` - Hidden theme + subreddit + post IDs
-- `Puzzle` - Complete daily puzzle
-- `PlayerGroup` - Player's grouping attempt
-- `GameSession` - Player's session state
-- `GameScore` - Scoring results
-- `FlairTier` - Streak-based flair progression
+## API Endpoints
 
-## API Endpoints (src/server/routes/gameApi.ts)
+- `GET /api/game/puzzle` - Load the public puzzle and session.
+- `POST /api/game/stage1` - Submit the 3-post selection.
+- `POST /api/game/stage2` - Submit one locked subreddit answer.
+- `POST /api/game/finalize` - Finalize score and return the reveal.
+- `GET /api/game/streak` - Load streak, completed count, and flair.
+- `POST /api/game/seed` - Re-seed puzzles manually if needed.
 
-- `GET /api/game/puzzle` - Get today's puzzle (groups hidden)
-- `POST /api/game/submit` - Submit grouping, get score + full reveal
-- `GET /api/game/streak` - Get user's streak and flair tier
-- `POST /api/game/seed` - Seed puzzles into KV (run once)
+## Progression
 
-## KV Storage Keys
+Flair is based on completed daily puzzles:
 
-- `puzzle:{id}` - Puzzle data
-- `session:{userId}:{puzzleId}` - Player session
-- `streak:{userId}` - Current streak count
-- `played:{userId}:{date}` - Daily play tracking
+| Completed puzzles | Flair |
+|---:|---|
+| 1 | Novice |
+| 5 | Connector |
+| 15 | Pattern Seeker |
+| 30 | Community Explorer |
+| 60 | Converger |
+
+A completed attempt counts even with wrong answers. Missing a day resets the streak.
 
 ## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Start dev server (playtest)
 npm run dev
-
-# Type check
 npm run test:types
-
-# Lint
-npm run lint
-
-# Build
+npx eslint src --ext .ts,.tsx
 npm run build
-
-# Deploy
-npm run deploy
 ```
 
-## Seeding Puzzles
+Playtest URL:
 
-After first deploy, call the seed endpoint:
 ```
-POST /api/game/seed
+https://www.reddit.com/r/converge_io_dev/?playtest=converge-io
 ```
-Or run the seed script data manually via Devvit KV.
-
-## Hackathon Demo
-
-7 puzzles defined in `scripts/seedPuzzles.ts`:
-1. **Day 1** - Fermentation & Temperature (Breadit, 3Dprinting, AskBaking)
-2. **Day 2** - Precision & Craft (sharpening, pens, watchmaking)
-3. **Day 3** - Urban Decay & Nature (AbandonedPorn, NatureReclaims, lichens)
-4. **Day 4** - Analog Craft (woodworking, fountainpens, MechanicalKeyboards)
-5. **Day 5** - Micro Worlds (microscopy, PrintedCircuitBoard, crystals)
-6. **Day 6** - Night & Light (astrophotography, flashlight, natureismetal)
-7. **Day 7** - Restored & Revived (castiron, bookbinding, knives)
-
-## Flair Tiers
-
-| Streak | Tier | Label |
-|--------|------|-------|
-| 0-2 | Novice | 🔰 Novice |
-| 3-6 | Seeker | 🔍 Seeker |
-| 7-13 | Connector | 🔗 Connector |
-| 14-29 | Cartographer | 🗺️ Cartographer |
-| 30+ | Converger | ✨ Converger |
-
-## Tech Stack
-
-- **Frontend**: React 19, Tailwind CSS 4, Vite
-- **Backend**: Node.js 22, Hono, tRPC
-- **Platform**: Devvit (Reddit's developer platform)
-- **Storage**: Devvit KV (Redis)
-
-## Deployment
-
-1. `npm run build`
-2. `devvit upload`
-3. `devvit publish`
-
-## License
-
-BSD-3-Clause

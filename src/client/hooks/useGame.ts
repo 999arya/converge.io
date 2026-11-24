@@ -1,270 +1,339 @@
 /**
- * useGame Hook - Main game logic for Converge
- * Handles puzzle loading, grouping, submission, and state management
+ * useGame Hook - Client state for Converge's 2-stage game.
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import type {
+  ErrorResponse,
+  FinalizeResponse,
+  GetPuzzleResponse,
+  GetStreakResponse,
+  Stage1Feedback,
+  Stage1Response,
+  Stage2Response,
+} from '../../shared/api';
+import type {
+  DisplaySubredditQuestion,
+  GameScore,
+  GameSession,
+  GameState,
+  PublicPuzzle,
+  Puzzle,
+} from '../../shared/gameTypes';
 
-// Safe array access helper
-function getArrayElement<T>(arr: T[], index: number): T | undefined {
-  return index >= 0 && index < arr.length ? arr[index] : undefined;
+type GameStateData = {
+  puzzle: PublicPuzzle | Puzzle | null;
+  session: GameSession | null;
+  score: GameScore | null;
+  streak: number;
+  totalCompleted: number;
+  flairTier: string;
+  loading: boolean;
+  submitting: boolean;
+  error: string | null;
+  selectedPostIds: string[];
+  stage1Feedback: Stage1Feedback | null;
+};
+
+const INITIAL_STATE: GameStateData = {
+  puzzle: null,
+  session: null,
+  score: null,
+  streak: 0,
+  totalCompleted: 0,
+  flairTier: 'Novice',
+  loading: true,
+  submitting: false,
+  error: null,
+  selectedPostIds: [],
+  stage1Feedback: null,
+};
+
+function deriveGameState(session: GameSession | null, loading: boolean): GameState {
+  if (loading || !session) return 'INTRO';
+  if (session.completedAt || session.stage === 'COMPLETED') return 'COMPLETED';
+  if (session.stage === 'RESULTS' || session.stage2Answers.length >= 3) return 'RESULTS';
+
+  if (!session.stage1Correct) {
+    if (session.stage === 'STAGE_1_FAILED' || session.stage1Attempts >= 2) return 'STAGE_1_FAILED';
+    if (session.stage === 'STAGE_1_SECOND_CHANCE' || session.stage1Attempts === 1) {
+      return 'STAGE_1_SECOND_CHANCE';
+    }
+    return 'STAGE_1_READY';
+  }
+
+  if (session.stage === 'STAGE_2_QUESTION_2' || session.stage2CurrentQuestion === 1) {
+    return 'STAGE_2_QUESTION_2';
+  }
+  if (session.stage === 'STAGE_2_QUESTION_3' || session.stage2CurrentQuestion === 2) {
+    return 'STAGE_2_QUESTION_3';
+  }
+  return 'STAGE_2_READY';
+}
+
+async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const data: ErrorResponse = await response.json();
+    return data.message || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 export const useGame = () => {
-  const [state, setState] = useState<{
-    puzzle: {
-      id: string;
-      date: string;
-      posts: { id: string; title: string; author: string; subreddit: string; score: number; thumbnailUrl?: string; permalink: string; isCorrectGroup?: number }[];
-      groups: { id: number; theme: string; subreddit: string; postIds: string[]; description: string }[];
-      crossPollination?: { postId: string; connectsGroups: number[]; bonusDescription: string }[];
-    } | null;
-    session: { playerGroups: { groupId: number; postIds: string[] }[]; streak?: number } | null;
-    score: { correctGroups: number; totalGroups: number; correctPosts: number; totalPosts: number; crossPollinationFound: boolean; streak: number; flairTier: string } | null;
-    loading: boolean;
-    error: string | null;
-    phase: 'loading' | 'playing' | 'submitted' | 'revealed';
-  }>({
-    puzzle: null,
-    session: null,
-    score: null,
-    loading: true,
-    error: null,
-    phase: 'loading',
-  });
+  const [state, setState] = useState<GameStateData>(INITIAL_STATE);
 
-  // Load puzzle on mount
-  useEffect(() => {
-    const loadPuzzle = async () => {
-      try {
-        const res = await fetch('/api/game/puzzle');
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        if (data.puzzle) {
-          setState((prev) => ({
-            ...prev,
-            puzzle: data.puzzle,
-            session: data.session ?? null,
-            loading: false,
-            phase: data.session?.submittedAt ? 'revealed' : 'playing',
-          }));
-
-          // If already submitted, load score
-          if (data.session?.submittedAt && data.session?.score) {
-            setState((prev) => ({
-              ...prev,
-              score: data.session.score,
-              phase: 'revealed',
-            }));
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load puzzle:', err);
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: 'Failed to load puzzle. Please refresh.',
-        }));
-      }
-    };
-    void loadPuzzle();
-  }, []);
-
-  // Toggle post in a group
-  const togglePostInGroup = useCallback((postId: string, groupId: number) => {
-    setState((prev) => {
-      if (!prev.puzzle || prev.phase !== 'playing') return prev;
-
-      const newPlayerGroups = [...(prev.session?.playerGroups ?? [])] as { groupId: number; postIds: string[] }[];
-
-      // Find if post is already in a group
-      let existingGroupIndex = -1;
-      for (let i = 0; i < newPlayerGroups.length; i++) {
-        const group = newPlayerGroups[i];
-        if (!group) continue;
-        if (group.postIds.includes(postId)) {
-          existingGroupIndex = i;
-          break;
-        }
-      }
-
-      // If post already in this group, remove it
-      if (existingGroupIndex !== -1) {
-        const group = getArrayElement(newPlayerGroups, existingGroupIndex);
-        if (!group) return prev;
-        if (group.groupId === groupId) {
-          const updatedPostIds = group.postIds.filter((id) => id !== postId);
-          if (updatedPostIds.length === 0) {
-            newPlayerGroups.splice(existingGroupIndex, 1);
-          } else {
-            newPlayerGroups[existingGroupIndex] = { groupId: group.groupId, postIds: updatedPostIds };
-          }
-        }
-        // If post in different group, move it
-        else {
-          // Remove from old group
-          const oldGroup = getArrayElement(newPlayerGroups, existingGroupIndex);
-          if (!oldGroup) return prev;
-          const updatedPostIds = oldGroup.postIds.filter((id) => id !== postId);
-          if (updatedPostIds.length === 0) {
-            newPlayerGroups.splice(existingGroupIndex, 1);
-          } else {
-            newPlayerGroups[existingGroupIndex] = { groupId: oldGroup.groupId, postIds: updatedPostIds };
-          }
-
-          // Add to new group
-          const targetIndex = newPlayerGroups.findIndex((g) => g.groupId === groupId);
-          if (targetIndex !== -1) {
-            const targetGroup = getArrayElement(newPlayerGroups, targetIndex);
-            if (targetGroup) {
-              newPlayerGroups[targetIndex] = { groupId, postIds: [...targetGroup.postIds, postId] };
-            }
-          } else {
-            newPlayerGroups.push({ groupId, postIds: [postId] });
-          }
-        }
-      }
-      // Post not in any group, add it
-      else {
-        const targetIndex = newPlayerGroups.findIndex((g) => g.groupId === groupId);
-        if (targetIndex !== -1) {
-          const targetGroup = getArrayElement(newPlayerGroups, targetIndex);
-          if (targetGroup) {
-            newPlayerGroups[targetIndex] = { groupId, postIds: [...targetGroup.postIds, postId] };
-          }
-        } else {
-          newPlayerGroups.push({ groupId, postIds: [postId] });
-        }
-      }
-
-      return {
-        ...prev,
-        session: prev.session ? { ...prev.session, playerGroups: newPlayerGroups } : null,
-      };
-    });
-  }, []);
-
-  // Remove post from its group
-  const removePostFromGroup = useCallback((postId: string) => {
-    setState((prev) => {
-      if (!prev.puzzle || prev.phase !== 'playing') return prev;
-
-      const newPlayerGroups = [...(prev.session?.playerGroups ?? [])] as { groupId: number; postIds: string[] }[];
-
-      for (let i = 0; i < newPlayerGroups.length; i++) {
-        const group = getArrayElement(newPlayerGroups, i);
-        if (!group) continue;
-        const idx = group.postIds.indexOf(postId);
-        if (idx !== -1) {
-          const updatedPostIds = group.postIds.filter((id) => id !== postId);
-          if (updatedPostIds.length === 0) {
-            newPlayerGroups.splice(i, 1);
-          } else {
-            newPlayerGroups[i] = { groupId: group.groupId, postIds: updatedPostIds };
-          }
-          break;
-        }
-      }
-
-      return {
-        ...prev,
-        session: prev.session ? { ...prev.session, playerGroups: newPlayerGroups } : null,
-      };
-    });
-  }, []);
-
-  // Check if a post is in a specific group
-  const isPostInGroup = useCallback(
-    (postId: string, groupId: number): boolean => {
-      const group = state.session?.playerGroups.find((g) => g.groupId === groupId);
-      return group?.postIds.includes(postId) ?? false;
-    },
-    [state.session?.playerGroups]
-  );
-
-  // Get posts in a group
-  const getPostsInGroup = useCallback(
-    (groupId: number) => {
-      if (!state.puzzle) return [] as { id: string; title: string; author: string; subreddit: string; score: number; thumbnailUrl?: string; permalink: string; isCorrectGroup?: number }[];
-      const group = state.session?.playerGroups.find((g) => g.groupId === groupId);
-      if (!group) return [];
-      return state.puzzle.posts.filter((p) => group.postIds.includes(p.id));
-    },
-    [state.puzzle, state.session?.playerGroups]
-  );
-
-  // Check if all posts are grouped
-  const allPostsGrouped = useCallback((): boolean => {
-    if (!state.puzzle || !state.session) return false;
-    const groupedCount = state.session.playerGroups.reduce(
-      (sum, g) => sum + g.postIds.length,
-      0
-    );
-    return groupedCount === state.puzzle.posts.length;
-  }, [state.puzzle, state.session]);
-
-  // Submit answer
-  const submitAnswer = useCallback(async () => {
-    if (!state.puzzle || !state.session) return;
-
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+  const loadGame = useCallback(async () => {
+    setState({ ...INITIAL_STATE });
 
     try {
-      const res = await fetch('/api/game/submit', {
+      const puzzleResponse = await fetch('/api/game/puzzle');
+      if (!puzzleResponse.ok) {
+        throw new Error(await readErrorMessage(puzzleResponse, 'Failed to load puzzle'));
+      }
+
+      const data: GetPuzzleResponse = await puzzleResponse.json();
+      let activePuzzle: PublicPuzzle | Puzzle = data.puzzle;
+      let activeSession = data.session ?? null;
+      let activeScore: GameScore | null = null;
+
+      if (activeSession?.completedAt) {
+        const finalizeResponse = await fetch('/api/game/finalize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ puzzleId: activePuzzle.id }),
+        });
+        if (finalizeResponse.ok) {
+          const finalized: FinalizeResponse = await finalizeResponse.json();
+          activePuzzle = finalized.puzzle;
+          activeSession = finalized.session;
+          activeScore = finalized.score;
+        }
+      }
+
+      setState((prev) => ({
+        ...prev,
+        puzzle: activePuzzle,
+        session: activeSession,
+        score: activeScore,
+        streak: data.streak,
+        totalCompleted: data.totalCompleted,
+        flairTier: data.flairTier,
+        selectedPostIds: activeSession?.selectedPostIds ?? [],
+        loading: false,
+        error: null,
+      }));
+
+      try {
+        const streakResponse = await fetch('/api/game/streak');
+        if (streakResponse.ok) {
+          const streakData: GetStreakResponse = await streakResponse.json();
+          setState((prev) => ({
+            ...prev,
+            streak: streakData.streak,
+            totalCompleted: streakData.totalCompleted,
+            flairTier: streakData.flairTier,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to load streak:', error);
+      }
+    } catch (error) {
+      console.error('Failed to load puzzle:', error);
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to load puzzle. Please refresh.',
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadGame();
+  }, [loadGame]);
+
+  const gameState = deriveGameState(state.session, state.loading);
+
+  const togglePostSelection = useCallback(
+    (postId: string) => {
+      if (
+        gameState !== 'STAGE_1_READY' &&
+        gameState !== 'STAGE_1_FIRST_SUBMISSION' &&
+        gameState !== 'STAGE_1_SECOND_CHANCE'
+      ) {
+        return;
+      }
+
+      setState((prev) => {
+        const alreadySelected = prev.selectedPostIds.includes(postId);
+        if (alreadySelected) {
+          return {
+            ...prev,
+            selectedPostIds: prev.selectedPostIds.filter((id) => id !== postId),
+          };
+        }
+        if (prev.selectedPostIds.length >= 3) return prev;
+        return {
+          ...prev,
+          selectedPostIds: [...prev.selectedPostIds, postId],
+        };
+      });
+    },
+    [gameState]
+  );
+
+  const isPostSelected = useCallback(
+    (postId: string) => state.selectedPostIds.includes(postId),
+    [state.selectedPostIds]
+  );
+
+  const clearSelection = useCallback(() => {
+    setState((prev) => ({ ...prev, selectedPostIds: [] }));
+  }, []);
+
+  const submitStage1 = useCallback(async () => {
+    const puzzle = state.puzzle;
+    if (!puzzle || state.selectedPostIds.length !== 3) return;
+
+    setState((prev) => ({ ...prev, submitting: true, error: null }));
+    try {
+      const response = await fetch('/api/game/stage1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          puzzleId: state.puzzle.id,
-          playerGroups: state.session.playerGroups,
+          puzzleId: puzzle.id,
+          selectedPostIds: state.selectedPostIds,
         }),
       });
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response, 'Failed to submit selection'));
+      }
 
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-
+      const data: Stage1Response = await response.json();
       setState((prev) => ({
         ...prev,
-        score: data.score,
-        puzzle: data.puzzle,
         session: data.session,
-        loading: false,
-        phase: 'revealed',
+        selectedPostIds: data.session.selectedPostIds,
+        stage1Feedback: data.feedback,
+        submitting: false,
       }));
-    } catch (err) {
-      console.error('Submit failed:', err);
+    } catch (error) {
+      console.error('Stage 1 submit failed:', error);
       setState((prev) => ({
         ...prev,
-        loading: false,
-        error: 'Failed to submit. Please try again.',
+        submitting: false,
+        error: error instanceof Error ? error.message : 'Failed to submit selection.',
       }));
     }
-  }, [state.puzzle, state.session]);
+  }, [state.puzzle, state.selectedPostIds]);
 
-  // Reset game (for testing or replay)
-  const resetGame = useCallback(() => {
-    setState({
-      puzzle: null,
-      session: null,
-      score: null,
-      loading: true,
-      error: null,
-      phase: 'loading',
-    });
-    // Reload puzzle
-    window.location.reload();
-  }, []);
+  const finalizeGame = useCallback(async () => {
+    const puzzle = state.puzzle;
+    if (!puzzle) return;
+
+    setState((prev) => ({ ...prev, submitting: true, error: null }));
+    try {
+      const response = await fetch('/api/game/finalize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ puzzleId: puzzle.id }),
+      });
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response, 'Failed to finalize puzzle'));
+      }
+
+      const data: FinalizeResponse = await response.json();
+      setState((prev) => ({
+        ...prev,
+        puzzle: data.puzzle,
+        session: data.session,
+        score: data.score,
+        streak: data.score.streak,
+        totalCompleted: data.score.totalCompleted,
+        flairTier: data.score.flairTier,
+        submitting: false,
+      }));
+    } catch (error) {
+      console.error('Finalize failed:', error);
+      setState((prev) => ({
+        ...prev,
+        submitting: false,
+        error: error instanceof Error ? error.message : 'Failed to show results.',
+      }));
+    }
+  }, [state.puzzle]);
+
+  const submitStage2 = useCallback(
+    async (selectedSubreddit: string) => {
+      const puzzle = state.puzzle;
+      const session = state.session;
+      if (!puzzle || !session || !session.stage1Correct) return;
+
+      const question = puzzle.subredditQuestions[session.stage2CurrentQuestion];
+      if (!question) return;
+
+      setState((prev) => ({ ...prev, submitting: true, error: null }));
+      try {
+        const response = await fetch('/api/game/stage2', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            puzzleId: puzzle.id,
+            postId: question.postId,
+            selectedSubreddit,
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(await readErrorMessage(response, 'Failed to submit answer'));
+        }
+
+        const data: Stage2Response = await response.json();
+        setState((prev) => ({
+          ...prev,
+          session: data.session,
+          submitting: false,
+        }));
+
+        if (data.nextQuestion >= puzzle.subredditQuestions.length) {
+          await finalizeGame();
+        }
+      } catch (error) {
+        console.error('Stage 2 submit failed:', error);
+        setState((prev) => ({
+          ...prev,
+          submitting: false,
+          error: error instanceof Error ? error.message : 'Failed to submit answer.',
+        }));
+      }
+    },
+    [finalizeGame, state.puzzle, state.session]
+  );
+
+  const currentQuestion: DisplaySubredditQuestion | null =
+    state.puzzle && state.session && state.session.stage1Correct
+      ? state.puzzle.subredditQuestions[state.session.stage2CurrentQuestion] ?? null
+      : null;
 
   return {
-    ...state,
-    togglePostInGroup,
-    removePostFromGroup,
-    isPostInGroup,
-    getPostsInGroup,
-    allPostsGrouped,
-    submitAnswer,
-    resetGame,
-    // Computed
-    groupedCount: state.session?.playerGroups?.reduce((sum, g) => sum + g.postIds.length, 0) ?? 0,
-    totalPosts: state.puzzle?.posts.length ?? 0,
+    puzzle: state.puzzle,
+    session: state.session,
+    score: state.score,
+    streak: state.streak,
+    totalCompleted: state.totalCompleted,
+    flairTier: state.flairTier,
+    loading: state.loading,
+    submitting: state.submitting,
+    error: state.error,
+    selectedPostIds: state.selectedPostIds,
+    stage1Feedback: state.stage1Feedback,
+    gameState,
+    currentQuestion,
+    togglePostSelection,
+    isPostSelected,
+    clearSelection,
+    submitStage1,
+    submitStage2,
+    finalizeGame,
+    reloadGame: loadGame,
   };
-}
+};

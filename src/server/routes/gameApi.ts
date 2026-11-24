@@ -1,46 +1,50 @@
 /**
- * Game API Routes - tRPC endpoints for Converge game (New 5-Post, 2-Stage Spec)
+ * Game API Routes - Hono endpoints for Converge's 2-stage game.
  */
 
 import { Hono } from 'hono';
 import { context } from '@devvit/web/server';
 import type {
+  ErrorResponse,
+  FinalizeRequest,
+  FinalizeResponse,
   GetPuzzleResponse,
   GetStreakResponse,
-  ErrorResponse,
+  Stage1Request,
+  Stage1Response,
+  Stage2Request,
+  Stage2Response,
 } from '../../shared/api';
-import type { Puzzle } from '../../shared/gameTypes';
+import type {
+  PublicConnection,
+  PublicPuzzle,
+  PublicPuzzlePost,
+  PublicSubredditQuestion,
+} from '../../shared/gameTypes';
 import {
+  calculateScore,
   getPuzzle,
   getSession,
-  submitStage1,
-  submitStage2,
-  calculateScore,
   getStreak,
   getTodayPuzzleId,
   seedPuzzles,
+  submitStage1,
+  submitStage2,
 } from '../core/puzzleStore';
 
 export const gameApi = new Hono();
 
-/**
- * GET /api/game/puzzle
- * Get today's puzzle (or specific puzzle) and existing session
- * Returns puzzle with posts but hides subreddit names and connection info
- */
-gameApi.get('/puzzle', async (c) => {
+function requireContext(): { userId: string; postId: string } | null {
   const { postId, userId } = context;
+  if (!postId || !userId) return null;
+  return { postId, userId };
+}
 
-  if (!postId) {
+gameApi.get('/puzzle', async (c) => {
+  const auth = requireContext();
+  if (!auth) {
     return c.json<ErrorResponse>(
-      { status: 'error', message: 'postId required' },
-      400
-    );
-  }
-
-  if (!userId) {
-    return c.json<ErrorResponse>(
-      { status: 'error', message: 'User not authenticated' },
+      { status: 'error', message: 'Authentication required' },
       401
     );
   }
@@ -56,28 +60,29 @@ gameApi.get('/puzzle', async (c) => {
       );
     }
 
-    // Check for existing session
-    const { session } = await getSession(userId, puzzleId);
+    const { session } = await getSession(auth.userId, puzzleId);
+    const progress = await getStreak(auth.userId);
 
-    // Return puzzle without revealing subreddits or connection info
-    const safePosts = puzzle.posts.map((p) => ({ 
-      ...p, 
-      isConnected: undefined, // Hide connection info
-      subreddit: 'r/????' // Hide subreddit
+    const safePosts: PublicPuzzlePost[] = puzzle.posts.map((post) => ({
+      ...post,
+      subreddit: 'r/????',
+      isConnected: undefined,
     }));
-    const safeConnection = {
-      ...puzzle.connection,
+
+    const safeConnection: PublicConnection = {
       theme: '???',
       explanation: '???',
       connectedPostIds: [],
       distractorPostIds: [],
     };
-    const safeQuestions = puzzle.subredditQuestions.map((q) => ({
-      ...q,
-      correctSubreddit: '???',
-      options: q.options.map(() => '???'),
+
+    const safeQuestions: PublicSubredditQuestion[] = puzzle.subredditQuestions.map((question) => ({
+      postId: question.postId,
+      options: [...question.options],
+      correctSubreddit: undefined,
     }));
-    const safePuzzle: Puzzle = {
+
+    const publicPuzzle: PublicPuzzle = {
       ...puzzle,
       posts: safePosts,
       connection: safeConnection,
@@ -85,8 +90,11 @@ gameApi.get('/puzzle', async (c) => {
     };
 
     return c.json<GetPuzzleResponse>({
-      puzzle: safePuzzle,
+      puzzle: publicPuzzle,
       session: session ?? undefined,
+      streak: progress.streak,
+      totalCompleted: progress.totalCompleted,
+      flairTier: progress.flairTier,
     });
   } catch (error) {
     console.error('Get puzzle error:', error);
@@ -97,14 +105,9 @@ gameApi.get('/puzzle', async (c) => {
   }
 });
 
-/**
- * POST /api/game/stage1
- * Submit Stage 1 answer (selected 3 post IDs)
- */
 gameApi.post('/stage1', async (c) => {
-  const { postId, userId } = context;
-
-  if (!postId || !userId) {
+  const auth = requireContext();
+  if (!auth) {
     return c.json<ErrorResponse>(
       { status: 'error', message: 'Authentication required' },
       401
@@ -112,22 +115,26 @@ gameApi.post('/stage1', async (c) => {
   }
 
   try {
-    const body = await c.req.json<{ puzzleId: string; selectedPostIds: string[] }>();
+    const body = await c.req.json<Stage1Request>();
     const { puzzleId, selectedPostIds } = body;
 
-    if (!puzzleId || !selectedPostIds || selectedPostIds.length !== 3) {
+    if (
+      !puzzleId ||
+      !Array.isArray(selectedPostIds) ||
+      selectedPostIds.length !== 3 ||
+      new Set(selectedPostIds).size !== 3
+    ) {
       return c.json<ErrorResponse>(
-        { status: 'error', message: 'Must select exactly 3 posts' },
+        { status: 'error', message: 'Select exactly 3 different posts' },
         400
       );
     }
 
-    const result = await submitStage1(userId, puzzleId, selectedPostIds);
-
-    return c.json({
+    const result = await submitStage1(auth.userId, puzzleId, selectedPostIds);
+    return c.json<Stage1Response>({
       success: result.success,
       correct: result.correct,
-      attempts: result.attempts,
+      feedback: result.feedback,
       session: result.session,
     });
   } catch (error) {
@@ -139,14 +146,9 @@ gameApi.post('/stage1', async (c) => {
   }
 });
 
-/**
- * POST /api/game/stage2
- * Submit Stage 2 answer (subreddit guess for a post)
- */
 gameApi.post('/stage2', async (c) => {
-  const { postId: ctxPostId, userId } = context;
-
-  if (!ctxPostId || !userId) {
+  const auth = requireContext();
+  if (!auth) {
     return c.json<ErrorResponse>(
       { status: 'error', message: 'Authentication required' },
       401
@@ -154,7 +156,7 @@ gameApi.post('/stage2', async (c) => {
   }
 
   try {
-    const body = await c.req.json<{ puzzleId: string; postId: string; selectedSubreddit: string }>();
+    const body = await c.req.json<Stage2Request>();
     const { puzzleId, postId, selectedSubreddit } = body;
 
     if (!puzzleId || !postId || !selectedSubreddit) {
@@ -164,9 +166,8 @@ gameApi.post('/stage2', async (c) => {
       );
     }
 
-    const result = await submitStage2(userId, puzzleId, postId, selectedSubreddit);
-
-    return c.json({
+    const result = await submitStage2(auth.userId, puzzleId, postId, selectedSubreddit);
+    return c.json<Stage2Response>({
       correct: result.correct,
       answer: result.answer,
       nextQuestion: result.nextQuestion,
@@ -181,14 +182,9 @@ gameApi.post('/stage2', async (c) => {
   }
 });
 
-/**
- * POST /api/game/finalize
- * Calculate final score after Stage 2 completion
- */
 gameApi.post('/finalize', async (c) => {
-  const { userId } = context;
-
-  if (!userId) {
+  const auth = requireContext();
+  if (!auth) {
     return c.json<ErrorResponse>(
       { status: 'error', message: 'Authentication required' },
       401
@@ -196,7 +192,7 @@ gameApi.post('/finalize', async (c) => {
   }
 
   try {
-    const body = await c.req.json<{ puzzleId: string }>();
+    const body = await c.req.json<FinalizeRequest>();
     const { puzzleId } = body;
 
     if (!puzzleId) {
@@ -206,14 +202,30 @@ gameApi.post('/finalize', async (c) => {
       );
     }
 
-    const score = await calculateScore(userId, puzzleId);
+    const score = await calculateScore(auth.userId, puzzleId);
     const puzzle = await getPuzzle(puzzleId);
-    const { session } = await getSession(userId, puzzleId);
+    if (!puzzle) {
+      return c.json<ErrorResponse>(
+        { status: 'error', message: 'Puzzle not found' },
+        404
+      );
+    }
+    const { session } = await getSession(auth.userId, puzzleId);
 
-    return c.json({
+    return c.json<FinalizeResponse>({
       score,
-      puzzle: puzzle!,
-      session: session!,
+      puzzle,
+      session: session ?? {
+        puzzleId,
+        stage: 'COMPLETED',
+        selectedPostIds: [],
+        stage1Attempts: 0,
+        stage1Correct: false,
+        stage2Answers: [],
+        stage2CurrentQuestion: 0,
+        startedAt: Date.now(),
+        score,
+      },
     });
   } catch (error) {
     console.error('Finalize error:', error);
@@ -224,13 +236,8 @@ gameApi.post('/finalize', async (c) => {
   }
 });
 
-/**
- * GET /api/game/streak
- * Get current user's streak and flair
- */
 gameApi.get('/streak', async (c) => {
   const { userId } = context;
-
   if (!userId) {
     return c.json<ErrorResponse>(
       { status: 'error', message: 'User not authenticated' },
@@ -239,22 +246,11 @@ gameApi.get('/streak', async (c) => {
   }
 
   try {
-    const streak = await getStreak(userId);
-
-    const tiers = [
-      { min: 60, tier: 'Converger', label: '✨ Converger' },
-      { min: 30, tier: 'Community Explorer', label: '🗺️ Community Explorer' },
-      { min: 15, tier: 'Pattern Seeker', label: '🔍 Pattern Seeker' },
-      { min: 5, tier: 'Connector', label: '🔗 Connector' },
-      { min: 0, tier: 'Novice', label: '🔰 Novice' },
-    ] as const;
-
-    const flair = tiers.find((t) => streak >= t.min) ?? tiers[4];
-
+    const progress = await getStreak(userId);
     return c.json<GetStreakResponse>({
-      streak,
-      flairTier: flair.tier,
-      totalPlayed: 0,
+      streak: progress.streak,
+      flairTier: progress.flairTier,
+      totalCompleted: progress.totalCompleted,
     });
   } catch (error) {
     console.error('Streak error:', error);
@@ -265,9 +261,6 @@ gameApi.get('/streak', async (c) => {
   }
 });
 
-/**
- * POST /api/game/seed (admin only - for initial setup)
- */
 gameApi.post('/seed', async (c) => {
   const { userId } = context;
   if (!userId) {

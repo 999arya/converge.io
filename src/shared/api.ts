@@ -1,11 +1,16 @@
 /**
  * Shared API Types
- * Used by both client and server for type-safe communication
+ * Used by both client and server for typed request/response shapes.
  */
 
-import type { Puzzle, GameSession, GameScore, PlayerGroup } from './gameTypes';
+import type {
+  GameScore,
+  GameSession,
+  PublicPuzzle,
+  Puzzle,
+  Stage2Answer,
+} from './gameTypes';
 
-// Legacy counter types (kept for reference)
 export type InitResponse = {
   type: 'init';
   postId: string;
@@ -25,22 +30,55 @@ export type DecrementResponse = {
   count: number;
 };
 
-// Game API Types
 export type GetPuzzleRequest = {
   puzzleId?: string;
 };
 
 export type GetPuzzleResponse = {
-  puzzle: Puzzle;
+  puzzle: PublicPuzzle;
   session?: GameSession;
+  streak: number;
+  totalCompleted: number;
+  flairTier: string;
 };
 
-export type SubmitGroupsRequest = {
+export type Stage1Request = {
   puzzleId: string;
-  playerGroups: PlayerGroup[];
+  selectedPostIds: string[];
 };
 
-export type SubmitGroupsResponse = {
+export type Stage1Feedback = {
+  correctCount: number;
+  attempts: number;
+  canRetry: boolean;
+  failed: boolean;
+};
+
+export type Stage1Response = {
+  success: boolean;
+  correct: boolean;
+  feedback: Stage1Feedback;
+  session: GameSession;
+};
+
+export type Stage2Request = {
+  puzzleId: string;
+  postId: string;
+  selectedSubreddit: string;
+};
+
+export type Stage2Response = {
+  correct: boolean;
+  answer: Stage2Answer;
+  nextQuestion: number;
+  session: GameSession;
+};
+
+export type FinalizeRequest = {
+  puzzleId: string;
+};
+
+export type FinalizeResponse = {
   score: GameScore;
   puzzle: Puzzle;
   session: GameSession;
@@ -49,7 +87,7 @@ export type SubmitGroupsResponse = {
 export type GetStreakResponse = {
   streak: number;
   flairTier: string;
-  totalPlayed: number;
+  totalCompleted: number;
 };
 
 export type SeedPuzzlesResponse = {

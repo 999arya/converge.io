@@ -1,81 +1,48 @@
 /**
- * GameBoard Component - Main game grid with posts and group zones
+ * GameBoard Component - Main 2-stage game UI.
  */
 
+import { formatSubreddit } from '../../shared/gameTypes';
+import type {
+  DisplaySubredditQuestion,
+  GameScore,
+  GameSession,
+  PublicPuzzle,
+  Puzzle,
+} from '../../shared/gameTypes';
 import { useGame } from '../hooks/useGame';
-import { GroupZone } from './GroupZone';
 import { PostCard } from './PostCard';
-import type { PuzzlePost } from '../../shared/gameTypes';
 
-// Group colors - distinct and accessible
-const GROUP_COLORS = ['#3b82f6', '#22c55e', '#a855f7']; // Blue, Green, Purple
-
-// Type definitions for reveal screen
-interface Score {
-  correctGroups: number;
-  totalGroups: number;
-  correctPosts: number;
-  totalPosts: number;
-  crossPollinationFound: boolean;
-  streak: number;
-  flairTier: string;
+function isFullPuzzle(value: PublicPuzzle | Puzzle): value is Puzzle {
+  return value.connection.theme !== '???';
 }
 
-interface Group {
-  id: number;
-  theme: string;
-  subreddit: string;
-  postIds: string[];
-  description: string;
-}
-
-interface Puzzle {
-  id: string;
-  date: string;
-  posts: PuzzlePost[];
-  groups: Group[];
-  crossPollination?: { postId: string; connectsGroups: number[]; bonusDescription: string }[];
-}
-
-interface Session {
-  playerGroups: { groupId: number; postIds: string[] }[];
-  streak?: number;
-  score?: Score;
-}
-
-interface RevealScreenProps {
-  puzzle: Puzzle;
-  session: Session;
-}
-
-interface StatCardProps {
-  label: string;
-  value: string;
-  color: string;
-}
-
-interface RevealGroupCardProps {
-  group: Group;
-  puzzle: Puzzle;
-  session: Session;
+function starText(starsEarned: number): string {
+  const count = Math.min(3, Math.max(0, starsEarned));
+  return `${'★'.repeat(count)}${'☆'.repeat(3 - count)}`;
 }
 
 export const GameBoard = () => {
   const {
     puzzle,
     session,
-    phase,
-    togglePostInGroup,
-    removePostFromGroup,
-    getPostsInGroup,
-    allPostsGrouped,
-    submitAnswer,
+    score,
+    error,
     loading,
-    groupedCount,
-    totalPosts,
+    submitting,
+    selectedPostIds,
+    stage1Feedback,
+    gameState,
+    currentQuestion,
+    togglePostSelection,
+    clearSelection,
+    submitStage1,
+    submitStage2,
+    finalizeGame,
+    reloadGame,
   } = useGame();
 
-  if (!puzzle || phase === 'loading') {
+  if (loading || (!puzzle && !error)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -86,263 +53,302 @@ export const GameBoard = () => {
     );
   }
 
-  if (phase === 'revealed' || phase === 'submitted') {
-    return <RevealScreen puzzle={puzzle} session={session!} />;
-  }
-
-  // Ungrouped posts (available to place)
-  const groupedPostIds = new Set(
-    session?.playerGroups.flatMap((g) => g.postIds) ?? []
-  );
-  const ungroupedPosts = puzzle.posts.filter((p) => !groupedPostIds.has(p.id));
-
-  const handlePostClick = (postId: string, currentGroup: number | null) => {
-    if (currentGroup !== null) {
-      // Remove from group
-      removePostFromGroup(postId);
-    } else {
-      // Find first incomplete group
-      for (let i = 0; i < 3; i++) {
-        const groupPosts = getPostsInGroup(i);
-        if (groupPosts.length < 3) { // Max 3 per group for now
-          togglePostInGroup(postId, i);
-          break;
-        }
-      }
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-full gap-4 p-4">
-      {/* Progress Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
-            {GROUP_COLORS.map((color, i) => (
-              <div
-                key={i}
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: color }}
-              />
-            ))}
-          </div>
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-            {groupedCount} / {totalPosts} posts grouped
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
+  if (error || !puzzle) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] p-4">
+        <div className="text-center">
+          <p className="text-red-600 dark:text-red-400 mb-3">{error ?? 'Puzzle unavailable.'}</p>
           <button
-            onClick={() => window.location.reload()}
-            className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-200"
+            type="button"
+            onClick={() => void reloadGame()}
+            className="px-4 py-2 rounded-lg bg-orange-500 text-white font-medium"
           >
-            Reset
+            Try again
           </button>
         </div>
       </div>
+    );
+  }
 
-      {/* Main Grid */}
-      <div className="flex-1 flex gap-4 min-h-0">
-        {/* Left: Ungrouped Posts */}
-        <div className="w-3/5 flex flex-col gap-3 overflow-y-auto">
-          <div className="flex items-center justify-between px-2 py-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-            <span>Available Posts</span>
-            <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
-              {ungroupedPosts.length} remaining
-            </span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-            {ungroupedPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                selectedGroup={null}
-                groupColors={GROUP_COLORS}
-                onSelect={() => handlePostClick(post.id, null)}
-              />
-            ))}
-            {ungroupedPosts.length === 0 && (
-              <div className="col-span-full flex items-center justify-center text-gray-400 dark:text-gray-500 py-8">
-                <p>All posts grouped! Ready to submit.</p>
-              </div>
-            )}
-          </div>
-        </div>
+  if (score && session) {
+    return <ResultsScreen puzzle={puzzle} session={session} score={score} onReplay={() => void reloadGame()} />;
+  }
 
-        {/* Right: Group Zones */}
-        <div className="w-2/5 flex flex-col gap-3 overflow-y-auto">
-          <div className="px-2 py-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-            Your Groups
-          </div>
-          <div className="grid grid-cols-1 gap-3 flex-1">
-            {GROUP_COLORS.map((color, i) => {
-              const posts = getPostsInGroup(i);
-              const isComplete = posts.length > 0 && posts.length <= 3;
-              return (
-                <GroupZone
-                  key={i}
-                  groupId={i}
-                  posts={posts}
-                  color={color}
-                  onPostClick={handlePostClick}
-                  isComplete={isComplete && groupedCount === totalPosts}
-                />
-              );
-            })}
-          </div>
-        </div>
-      </div>
+  if (
+    gameState === 'STAGE_2_READY' ||
+    gameState === 'STAGE_2_QUESTION_2' ||
+    gameState === 'STAGE_2_QUESTION_3' ||
+    gameState === 'RESULTS'
+  ) {
+    return (
+      <StageTwo
+        puzzle={puzzle}
+        session={session}
+        currentQuestion={currentQuestion}
+        submitting={submitting}
+        error={error}
+        onSubmit={submitStage2}
+        onFinalize={() => void finalizeGame()}
+      />
+    );
+  }
 
-      {/* Submit Button */}
-      <div className="flex justify-center pt-2">
-        <button
-          onClick={submitAnswer}
-          disabled={!allPostsGrouped() || loading}
-          className="w-full sm:w-1/2 lg:w-1/3 px-6 py-3 rounded-xl font-semibold text-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            backgroundColor: allPostsGrouped() ? '#d93900' : '#e5e7eb',
-            color: allPostsGrouped() ? 'white' : '#9ca3af',
-          }}
-        >
-          {loading ? 'Submitting...' : allPostsGrouped() ? 'Submit Groups' : 'Group all posts to submit'}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-/**
- * Reveal Screen - Shows after submission
- */
-const RevealScreen = ({ puzzle, session }: RevealScreenProps) => {
-  const { score } = session;
-
-  if (!score) return null;
-
-  const percentage = Math.round((score.correctGroups / score.totalGroups) * 100);
-  const isPerfect = score.correctGroups === score.totalGroups;
+  const stage1Failed = gameState === 'STAGE_1_FAILED';
 
   return (
     <div className="flex flex-col h-full gap-4 p-4 overflow-y-auto">
-      {/* Result Header */}
-      <div className="text-center py-6">
-        <div className="text-6xl mb-4">{isPerfect ? '🎉' : percentage >= 66 ? '👏' : '📚'}</div>
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          {isPerfect ? 'Perfect Convergence!' : 'Puzzle Complete'}
-        </h2>
-        <p className="text-lg text-gray-600 dark:text-gray-300">
-          {score.correctGroups} of {score.totalGroups} groups correct ({percentage}%)
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">Stage 1 of 2</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Find the connection</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Pick exactly 3 of the 5 posts that share a hidden theme. You get 2 attempts.
         </p>
       </div>
 
-      {/* Score Breakdown */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <StatCard
-          label="Groups Correct"
-          value={`${score.correctGroups}/${score.totalGroups}`}
-          color={isPerfect ? '#22c55e' : score.correctGroups > 0 ? '#f59e0b' : '#ef4444'}
-        />
-        <StatCard
-          label="Posts Correct"
-          value={`${score.correctPosts}/${score.totalPosts}`}
-          color='#3b82f6'
-        />
-        <StatCard
-          label="Streak"
-          value={score.streak.toString()}
-          color='#d93900'
-        />
-      </div>
-
-      {/* Group Reveals */}
-      <div className="space-y-3 mb-4">
-        <h3 className="font-semibold text-gray-900 dark:text-white">Group Reveals</h3>
-        {puzzle.groups.map((group) => (
-          <RevealGroupCard key={group.id} group={group} puzzle={puzzle} session={session} />
-        ))}
-      </div>
-
-      {/* Cross-pollination */}
-      {puzzle.crossPollination?.length && (
-        <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-4 mb-4">
-          <h4 className="font-semibold text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-2">
-            💫 Cross-Pollination Bonus!
-          </h4>
-          {puzzle.crossPollination.map((cp, i) => (
-            <p key={i} className="text-sm text-gray-700 dark:text-gray-300">
-              {cp.bonusDescription}
-            </p>
-          ))}
+      {stage1Feedback && (
+        <div
+          className={`rounded-xl p-3 text-sm ${
+            stage1Feedback.failed
+              ? 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+              : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+          }`}
+        >
+          {stage1Feedback.failed
+            ? `No attempts left. ${stage1Feedback.correctCount} of 3 posts were connected.`
+            : `${stage1Feedback.correctCount} of 3 posts were connected. Try again.`}
         </div>
       )}
 
-      {/* Flair & Streak */}
-      <div className="flex items-center justify-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50">
-        <div className="text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Current Streak</p>
-          <p className="text-3xl font-bold text-orange-500">{score.streak} days</p>
-        </div>
-        <div className="w-px h-12 bg-gray-200 dark:bg-gray-700" />
-        <div className="text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Flair Tier</p>
-          <p className="text-xl font-bold text-purple-600 dark:text-purple-400">{score.flairTier}</p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {puzzle.posts.map((post) => {
+          const selectionIndex = selectedPostIds.indexOf(post.id);
+          return (
+            <PostCard
+              key={post.id}
+              post={post}
+              selected={selectionIndex >= 0}
+              selectionNumber={selectionIndex >= 0 ? selectionIndex + 1 : undefined}
+              disabled={stage1Failed || submitting}
+              onSelect={() => togglePostSelection(post.id)}
+            />
+          );
+        })}
       </div>
 
-      {/* Play Again */}
-      <button
-        onClick={() => window.location.reload()}
-        className="w-full sm:w-1/2 mx-auto px-6 py-3 rounded-xl font-semibold text-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors"
-      >
-        Play Tomorrow's Puzzle
-      </button>
+      <div className="flex items-center justify-between gap-3 pt-2">
+        <button
+          type="button"
+          onClick={clearSelection}
+          disabled={stage1Failed || submitting || selectedPostIds.length === 0}
+          className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 disabled:opacity-50"
+        >
+          Clear selection
+        </button>
+        <button
+          type="button"
+          disabled={selectedPostIds.length !== 3 || stage1Failed || submitting}
+          onClick={() => void submitStage1()}
+          className="px-6 py-3 rounded-xl font-semibold bg-orange-500 text-white disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800"
+        >
+          {submitting
+            ? 'Submitting...'
+            : stage1Failed
+              ? 'No attempts left'
+              : `Submit ${selectedPostIds.length}/3 selected`}
+        </button>
+      </div>
+
+      {stage1Failed && (
+        <button
+          type="button"
+          onClick={() => void finalizeGame()}
+          disabled={submitting}
+          className="w-full py-3 rounded-xl font-semibold bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+        >
+          See results
+        </button>
+      )}
     </div>
   );
 };
 
-const StatCard = ({ label, value, color }: StatCardProps) => (
-  <div className="p-4 rounded-xl text-center" style={{ backgroundColor: color + '15', borderColor: color + '40' }}>
-    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</p>
-    <p className="text-3xl font-bold mt-1" style={{ color }}>{value}</p>
-  </div>
-);
+type StageTwoProps = {
+  puzzle: PublicPuzzle | Puzzle;
+  session: GameSession | null;
+  currentQuestion: DisplaySubredditQuestion | null;
+  submitting: boolean;
+  error: string | null;
+  onSubmit: (selectedSubreddit: string) => Promise<void>;
+  onFinalize: () => void;
+};
 
-const RevealGroupCard = ({ group, puzzle, session }: RevealGroupCardProps) => {
-  const groupColors = ['#3b82f6', '#22c55e', '#a855f7'];
-  const color = groupColors[group.id];
-  const groupPosts = puzzle.posts.filter((p) => group.postIds.includes(p.id));
-  const playerPosts = session?.playerGroups?.find((g) => g.groupId === group.id)?.postIds ?? [];
-  const correctCount = groupPosts.filter((p) => playerPosts.includes(p.id)).length;
+const StageTwo = ({
+  puzzle,
+  session,
+  currentQuestion,
+  submitting,
+  error,
+  onSubmit,
+  onFinalize,
+}: StageTwoProps) => {
+  const answers = session?.stage2Answers ?? [];
+  const currentPost = currentQuestion
+    ? puzzle.posts.find((post) => post.id === currentQuestion.postId)
+    : undefined;
 
   return (
-    <div className="rounded-xl p-4" style={{ backgroundColor: color + '10', border: `1px solid ${color}40` }}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-            style={{ backgroundColor: color }}>
-            {group.id + 1}
-          </div>
-          <div>
-            <h4 className="font-semibold text-gray-900 dark:text-white">{group.theme}</h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400">r/{group.subreddit}</p>
+    <div className="flex flex-col h-full gap-4 p-4 overflow-y-auto">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">Stage 2 of 2</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Name the subreddit</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Choose the source subreddit for each connected post. Answers lock permanently.
+        </p>
+      </div>
+
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+      {currentQuestion && currentPost ? (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            Question {answers.length + 1} of 3
+          </p>
+          <p className="font-semibold text-gray-900 dark:text-white">{currentPost.title}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            u/{currentPost.author} · {currentPost.score.toLocaleString()} ↑
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-2">
+            {currentQuestion.options.map((option) => (
+              <button
+                key={option}
+                type="button"
+                disabled={submitting}
+                onClick={() => void onSubmit(option)}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-left font-medium text-gray-900 dark:text-white hover:border-orange-400 disabled:opacity-60"
+              >
+                {formatSubreddit(option)}
+              </button>
+            ))}
           </div>
         </div>
-        <span className="text-sm font-medium px-2 py-1 rounded" style={{ backgroundColor: color + '20', color }}>
-          {correctCount}/{group.postIds.length}
-        </span>
+      ) : (
+        <div className="rounded-xl p-4 bg-gray-100 dark:bg-gray-800 text-center">
+          <p className="text-gray-700 dark:text-gray-200">All answers submitted.</p>
+          <button
+            type="button"
+            onClick={onFinalize}
+            disabled={submitting}
+            className="mt-3 px-5 py-2 rounded-lg bg-orange-500 text-white font-semibold"
+          >
+            Show results
+          </button>
+        </div>
+      )}
+
+      {answers.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Locked answers</p>
+          {answers.map((answer, index) => {
+            const answeredPost = puzzle.posts.find((post) => post.id === answer.postId);
+            return (
+              <div
+                key={`${answer.postId}-${index}`}
+                className="flex items-center justify-between gap-3 rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm"
+              >
+                <span className="text-gray-700 dark:text-gray-200 line-clamp-1">
+                  {answeredPost?.title ?? answer.postId}
+                </span>
+                <span className={answer.isCorrect ? 'text-green-600' : 'text-red-500'}>
+                  {formatSubreddit(answer.selectedSubreddit)} {answer.isCorrect ? '✓' : '✗'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+type ResultsScreenProps = {
+  puzzle: PublicPuzzle | Puzzle;
+  session: GameSession;
+  score: GameScore;
+  onReplay: () => void;
+};
+
+const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps) => {
+  if (!isFullPuzzle(puzzle)) {
+    return <div className="p-6 text-center text-gray-500">Loading reveal...</div>;
+  }
+
+  const connectedPosts = puzzle.posts.filter((post) =>
+    puzzle.connection.connectedPostIds.includes(post.id)
+  );
+
+  return (
+    <div className="flex flex-col h-full gap-4 p-4 overflow-y-auto">
+      <div className="text-center py-4">
+        <p className="text-5xl mb-2 text-orange-500">{starText(score.starsEarned)}</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {score.connectionSolved ? 'Connection found!' : 'Connection missed'}
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {score.correctSubredditGuesses} of 3 subreddits correct
+        </p>
       </div>
-      <p className="text-sm text-gray-600 dark:text-gray-300">{group.description}</p>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        {groupPosts.map((post) => (
-          <div key={post.id} className="text-xs p-2 rounded bg-white dark:bg-gray-800">
-            <span className="font-medium">{post.title}</span>
-            <div className="flex items-center gap-1 mt-1 text-gray-500 dark:text-gray-400">
-              <span>r/{post.subreddit}</span>
-              <span>·</span>
-              <span>{post.score.toLocaleString()} ↑</span>
+
+      <div className="rounded-xl border border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/30 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">The connection</p>
+        <h3 className="font-bold text-gray-900 dark:text-white mt-1">{puzzle.connection.theme}</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+          {puzzle.connection.explanation}
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        {connectedPosts.map((post) => {
+          const answer = session.stage2Answers.find((item) => item.postId === post.id);
+          const question = puzzle.subredditQuestions.find((item) => item.postId === post.id);
+          return (
+            <div key={post.id} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+              <p className="font-medium text-gray-900 dark:text-white">{post.title}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Correct: {formatSubreddit(question?.correctSubreddit ?? post.subreddit)}
+              </p>
+              {answer && (
+                <p className={`text-sm mt-1 ${answer.isCorrect ? 'text-green-600' : 'text-red-500'}`}>
+                  You chose: {formatSubreddit(answer.selectedSubreddit)} {answer.isCorrect ? '✓' : '✗'}
+                </p>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      <div className="flex items-center justify-center gap-6 rounded-xl bg-gray-100 dark:bg-gray-800 p-4">
+        <div className="text-center">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Streak</p>
+          <p className="text-xl font-bold text-orange-500">{score.streak}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Completed</p>
+          <p className="text-xl font-bold text-gray-900 dark:text-white">{score.totalCompleted}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Flair</p>
+          <p className="text-sm font-bold text-purple-600 dark:text-purple-400">{score.flairTier}</p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onReplay}
+        className="w-full py-3 rounded-xl font-semibold bg-orange-500 text-white"
+      >
+        Reload puzzle
+      </button>
     </div>
   );
 };

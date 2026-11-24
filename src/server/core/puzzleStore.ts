@@ -1,404 +1,346 @@
 /**
- * Puzzle Store - KV operations for Converge game
- * Handles puzzle data, player sessions, and streaks
+ * Puzzle Store - KV operations for Converge
+ * Puzzles are seeded automatically on first access.
  */
 
 import { redis } from '@devvit/web/server';
-import type { Puzzle, GameSession, GameScore, Stage2Answer, FlairTier } from '../../shared/gameTypes';
+import {
+  getFlairTier,
+  getTodayPuzzleId,
+} from '../../shared/gameTypes';
+import type {
+  FlairTier,
+  GameScore,
+  GameSession,
+  GameState,
+  Puzzle,
+  Stage2Answer,
+} from '../../shared/gameTypes';
 
-// Key prefixes
+export { getTodayPuzzleId };
+
 const KEYS = {
   PUZZLE: 'puzzle:',
   SESSION: 'session:',
   STREAK: 'streak:',
   PLAYED: 'played:',
+  LAST_COMPLETED: 'lastCompleted:',
+  TOTAL_COMPLETED: 'totalCompleted:',
 } as const;
 
-// Default puzzles for hackathon demo (7 days) - Updated to current week: Nov 24-30, 2026
 const DEFAULT_PUZZLES: Puzzle[] = [
-  // Day 1: Nov 24, 2026 - Fermentation & Temperature Control
   {
     id: '2026-11-24',
     date: '2026-11-24',
     posts: [
-      {
-        id: 'p1',
-        title: 'My sourdough starter finally doubled in 4 hours!',
-        author: 'BreadBaker99',
-        subreddit: 'Breadit',
-        score: 2300,
-        permalink: '/r/Breadit/comments/abc123',
-        isConnected: true,
-      },
-      {
-        id: 'p2',
-        title: 'Crumb shot: 75% hydration, cold retard 18h',
-        author: 'CrumbMaster',
-        subreddit: 'Breadit',
-        score: 1800,
-        thumbnailUrl: 'https://i.redd.it/abc123.jpg',
-        permalink: '/r/Breadit/comments/def456',
-        isConnected: true,
-      },
-      {
-        id: 'p3',
-        title: 'First loaf in my new Challenger bread pan 😭',
-        author: 'NewBaker',
-        subreddit: 'Breadit',
-        score: 900,
-        thumbnailUrl: 'https://i.redd.it/def456.jpg',
-        permalink: '/r/Breadit/comments/ghi789',
-        isConnected: true,
-      },
-      {
-        id: 'p4',
-        title: 'My Ender 3 prints perfect benchys now',
-        author: 'PrintMaster',
-        subreddit: '3Dprinting',
-        score: 3200,
-        permalink: '/r/3Dprinting/comments/jkl012',
-        isConnected: false,
-      },
-      {
-        id: 'p5',
-        title: 'PLA vs PETG for functional parts - temp comparison',
-        author: 'FilamentFan',
-        subreddit: '3Dprinting',
-        score: 1500,
-        permalink: '/r/3Dprinting/comments/mno345',
-        isConnected: false,
-      },
-      {
-        id: 'p6',
-        title: 'Sourdough starter smells like acetone - normal?',
-        author: 'WorriedBaker',
-        subreddit: 'AskBaking',
-        score: 500,
-        permalink: '/r/AskBaking/comments/pqr678',
-        isConnected: false,
-      },
-      {
-        id: 'p7',
-        title: 'Why does my starter smell like nail polish remover?',
-        author: 'CuriousCook',
-        subreddit: 'AskBaking',
-        score: 700,
-        permalink: '/r/AskBaking/comments/stu901',
-        isConnected: false,
-      },
+      { id: 'p1', title: 'My sourdough starter finally doubled in 4 hours!', author: 'BreadBaker99', subreddit: 'Breadit', score: 2300, permalink: '/r/Breadit/comments/abc123' },
+      { id: 'p2', title: 'Crumb shot: 75% hydration, cold retard 18h', author: 'CrumbMaster', subreddit: 'Breadit', score: 1800, permalink: '/r/Breadit/comments/def456' },
+      { id: 'p3', title: 'First loaf in my new Challenger bread pan', author: 'NewBaker', subreddit: 'Breadit', score: 900, permalink: '/r/Breadit/comments/ghi789' },
+      { id: 'p4', title: 'My Ender 3 prints perfect benchys now', author: 'PrintMaster', subreddit: '3Dprinting', score: 3200, permalink: '/r/3Dprinting/comments/jkl012' },
+      { id: 'p5', title: 'Sourdough starter smells like acetone - normal?', author: 'WorriedBaker', subreddit: 'AskBaking', score: 500, permalink: '/r/AskBaking/comments/pqr678' },
     ],
     connection: {
       theme: 'Fermentation & Temperature Control',
-      explanation: 'All about bread fermentation — starter activity, hydration, and cold retard timing.',
+      explanation: 'The three connected posts are all about bread fermentation: starter activity, hydration, and cold retard timing.',
       connectedPostIds: ['p1', 'p2', 'p3'],
-      distractorPostIds: ['p4', 'p5', 'p6', 'p7'],
+      distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      {
-        postId: 'p1',
-        correctSubreddit: 'r/Breadit',
-        options: ['r/Breadit', 'r/Sourdough', 'r/Baking'],
-      },
-      {
-        postId: 'p2',
-        correctSubreddit: 'r/Breadit',
-        options: ['r/Breadit', 'r/ArtisanBread', 'r/BreaditShowcase'],
-      },
-      {
-        postId: 'p3',
-        correctSubreddit: 'r/Breadit',
-        options: ['r/Breadit', 'r/ArtisanBread', 'r/BreaditShowcase'],
-      },
+      { postId: 'p1', correctSubreddit: 'r/Breadit', options: ['r/Breadit', 'r/Sourdough', 'r/Baking'] },
+      { postId: 'p2', correctSubreddit: 'r/Breadit', options: ['r/Breadit', 'r/ArtisanBread', 'r/BreaditShowcase'] },
+      { postId: 'p3', correctSubreddit: 'r/Breadit', options: ['r/Breadit', 'r/ArtisanBread', 'r/BreaditShowcase'] },
     ],
   },
-  // Day 2: Nov 25, 2026 - Precision & Craft
   {
     id: '2026-11-25',
     date: '2026-11-25',
     posts: [
-      { id: 'p1', title: 'My new Japanese waterstone progression', author: 'SharpEdge', subreddit: 'sharpening', score: 1200, permalink: '/r/sharpening/comments/aaa', isConnected: true },
-      { id: 'p2', title: 'Finally got my chisel to mirror polish', author: 'WoodworkerJoe', subreddit: 'woodworking', score: 2100, permalink: '/r/woodworking/comments/bbb', isConnected: true },
-      { id: 'p3', title: '0.3mm mechanical pencil lead comparison', author: 'LeadLover', subreddit: 'pencils', score: 800, permalink: '/r/pencils/comments/ccc', isConnected: true },
-      { id: 'p4', title: 'Rotring 600 vs 800 - the ultimate test', author: 'PenAddict', subreddit: 'pens', score: 1500, permalink: '/r/pens/comments/ddd', isConnected: false },
-      { id: 'p5', title: 'Watchmaking: installing a hairspring', author: 'Horologist', subreddit: 'watchmaking', score: 900, permalink: '/r/watchmaking/comments/eee', isConnected: false },
-      { id: 'p5b', title: 'Regulating my Seiko 7S26 to +2s/day', author: 'WatchNerd', subreddit: 'WatchRepair', score: 600, permalink: '/r/WatchRepair/comments/fff', isConnected: false },
-      { id: 'p6', title: 'Fountain pen nib smoothing results', author: 'NibMeister', subreddit: 'fountainpens', score: 1800, permalink: '/r/fountainpens/comments/ggg', isConnected: false },
+      { id: 'p1', title: 'My new Japanese waterstone progression', author: 'SharpEdge', subreddit: 'sharpening', score: 1200, permalink: '/r/sharpening/comments/aaa' },
+      { id: 'p2', title: 'Finally got my chisel to mirror polish', author: 'WoodworkerJoe', subreddit: 'woodworking', score: 2100, permalink: '/r/woodworking/comments/bbb' },
+      { id: 'p3', title: '0.3mm mechanical pencil lead comparison', author: 'LeadLover', subreddit: 'pencils', score: 800, permalink: '/r/pencils/comments/ccc' },
+      { id: 'p4', title: 'Rotring 600 vs 800 - the ultimate test', author: 'PenAddict', subreddit: 'pens', score: 1500, permalink: '/r/pens/comments/ddd' },
+      { id: 'p5', title: 'Watchmaking: installing a hairspring', author: 'Horologist', subreddit: 'watchmaking', score: 900, permalink: '/r/watchmaking/comments/eee' },
     ],
     connection: {
       theme: 'Precision & Craft',
-      explanation: 'The pursuit of precision in craftsmanship — sharpening, writing instruments, and micromechanics.',
+      explanation: 'These posts share a pursuit of tiny tolerances: sharpening edges, polishing chisels, and comparing pencil leads.',
       connectedPostIds: ['p1', 'p2', 'p3'],
-      distractorPostIds: ['p4', 'p5', 'p5b', 'p6'],
+      distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      {
-        postId: 'p1',
-        correctSubreddit: 'r/sharpening',
-        options: ['r/sharpening', 'r/knives', 'r/cooking'],
-      },
-      {
-        postId: 'p2',
-        correctSubreddit: 'r/woodworking',
-        options: ['r/woodworking', 'r/carpentry', 'r/DIY'],
-      },
-      {
-        postId: 'p3',
-        correctSubreddit: 'r/pencils',
-        options: ['r/pencils', 'r/PenAddicts', 'r/Stationery'],
-      },
+      { postId: 'p1', correctSubreddit: 'r/sharpening', options: ['r/sharpening', 'r/knives', 'r/cooking'] },
+      { postId: 'p2', correctSubreddit: 'r/woodworking', options: ['r/woodworking', 'r/carpentry', 'r/DIY'] },
+      { postId: 'p3', correctSubreddit: 'r/pencils', options: ['r/pencils', 'r/PenAddicts', 'r/Stationery'] },
     ],
   },
-  // Day 3: Nov 26, 2026 - Urban Decay & Nature
   {
     id: '2026-11-26',
     date: '2026-11-26',
     posts: [
-      { id: 'p1', title: 'Abandoned theater - nature taking over', author: 'UrbexPhoto', subreddit: 'AbandonedPorn', score: 4500, permalink: '/r/AbandonedPorn/comments/ggg', isConnected: true },
-      { id: 'p2', title: 'Vines consuming an old factory', author: 'DecayHunter', subreddit: 'UrbanExploration', score: 2800, permalink: '/r/UrbanExploration/comments/hhh', isConnected: true },
-      { id: 'p3', title: 'Moss garden in a cracked sidewalk', author: 'SidewalkBotanist', subreddit: 'moss', score: 1200, permalink: '/r/moss/comments/iii', isConnected: true },
-      { id: 'p4', title: 'Tree growing through abandoned roof', author: 'NatureWins', subreddit: 'NatureReclaims', score: 3500, permalink: '/r/NatureReclaims/comments/jjj', isConnected: false },
-      { id: 'p5', title: 'Ferns in brick mortar - identification?', author: 'PlantID', subreddit: 'whatsthisplant', score: 400, permalink: '/r/whatsthisplant/comments/kkk', isConnected: false },
-      { id: 'p6', title: 'Lichen patterns on gravestones', author: 'LichenLover', subreddit: 'lichens', score: 300, permalink: '/r/lichens/comments/lll', isConnected: false },
-      { id: 'p7', title: 'Raccoons in abandoned mall', author: 'UrbanWildlife', subreddit: 'UrbanExploration', score: 2200, permalink: '/r/UrbanExploration/comments/mmm', isConnected: false },
+      { id: 'p1', title: 'Abandoned theater - nature taking over', author: 'UrbexPhoto', subreddit: 'AbandonedPorn', score: 4500, permalink: '/r/AbandonedPorn/comments/ggg' },
+      { id: 'p2', title: 'Vines consuming an old factory', author: 'DecayHunter', subreddit: 'UrbanExploration', score: 2800, permalink: '/r/UrbanExploration/comments/hhh' },
+      { id: 'p3', title: 'Moss garden in a cracked sidewalk', author: 'SidewalkBotanist', subreddit: 'moss', score: 1200, permalink: '/r/moss/comments/iii' },
+      { id: 'p4', title: 'Ferns in brick mortar - identification?', author: 'PlantID', subreddit: 'whatsthisplant', score: 400, permalink: '/r/whatsthisplant/comments/kkk' },
+      { id: 'p5', title: 'Lichen patterns on gravestones', author: 'LichenLover', subreddit: 'lichens', score: 300, permalink: '/r/lichens/comments/lll' },
     ],
     connection: {
       theme: 'Urban Decay & Nature Reclaiming',
-      explanation: 'Human structures being reclaimed by nature — theaters, factories, sidewalks, and rooftops.',
+      explanation: 'Human-built places are slowly being reclaimed: a theater, a factory, and a cracked sidewalk.',
       connectedPostIds: ['p1', 'p2', 'p3'],
-      distractorPostIds: ['p4', 'p5', 'p6', 'p7'],
+      distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      {
-        postId: 'p1',
-        correctSubreddit: 'r/AbandonedPorn',
-        options: ['r/AbandonedPorn', 'r/UrbanExploration', 'r/Decay'],
-      },
-      {
-        postId: 'p2',
-        correctSubreddit: 'r/UrbanExploration',
-        options: ['r/UrbanExploration', 'r/AbandonedPorn', 'r/RoofTopping'],
-      },
-      {
-        postId: 'p3',
-        correctSubreddit: 'r/moss',
-        options: ['r/moss', 'r/NatureReclaims', 'r/botany'],
-      },
+      { postId: 'p1', correctSubreddit: 'r/AbandonedPorn', options: ['r/AbandonedPorn', 'r/UrbanExploration', 'r/Decay'] },
+      { postId: 'p2', correctSubreddit: 'r/UrbanExploration', options: ['r/UrbanExploration', 'r/AbandonedPorn', 'r/RoofTopping'] },
+      { postId: 'p3', correctSubreddit: 'r/moss', options: ['r/moss', 'r/NatureReclaims', 'r/botany'] },
     ],
   },
-  // Day 4: Nov 27, 2026 - Analog Craft
   {
     id: '2026-11-27',
     date: '2026-11-27',
     posts: [
-      { id: 'p1', title: 'Hand-cut dovetails - 3rd attempt', author: 'JoineryJourney', subreddit: 'woodworking', score: 3200, permalink: '/r/woodworking/comments/mmm', isConnected: true },
-      { id: 'p2', title: 'My first hand-forged knife', author: 'SmithyStart', subreddit: 'Blacksmith', score: 2800, permalink: '/r/Blacksmith/comments/nnn', isConnected: true },
-      { id: 'p3', title: 'Fountain pen nib smoothing results', author: 'NibMeister', subreddit: 'fountainpens', score: 1800, permalink: '/r/fountainpens/comments/ooo', isConnected: true },
-      { id: 'p4', title: 'Leather wallet - saddle stitching', author: 'LeatherCrafter', subreddit: 'Leathercraft', score: 1500, permalink: '/r/Leathercraft/comments/ppp', isConnected: false },
-      { id: 'p5', title: 'Mechanical keyboard switch lubing guide', author: 'SwitchScientist', subreddit: 'MechanicalKeyboards', score: 4200, permalink: '/r/MechanicalKeyboards/comments/qqq', isConnected: false },
-      { id: 'p5b', title: 'Custom keycap set - GMK Olive', author: 'KeycapCollector', subreddit: 'MechanicalKeyboards', score: 1900, permalink: '/r/MechanicalKeyboards/comments/rrr', isConnected: false },
-      { id: 'p6', title: 'Cast iron seasoning science', author: 'CastIronChef', subreddit: 'castiron', score: 2200, permalink: '/r/castiron/comments/sss', isConnected: false },
+      { id: 'p1', title: 'Hand-cut dovetails - 3rd attempt', author: 'JoineryJourney', subreddit: 'woodworking', score: 3200, permalink: '/r/woodworking/comments/mmm' },
+      { id: 'p2', title: 'My first hand-forged knife', author: 'SmithyStart', subreddit: 'Blacksmith', score: 2800, permalink: '/r/Blacksmith/comments/nnn' },
+      { id: 'p3', title: 'Fountain pen nib smoothing results', author: 'NibMeister', subreddit: 'fountainpens', score: 1800, permalink: '/r/fountainpens/comments/ooo' },
+      { id: 'p4', title: 'Leather wallet - saddle stitching', author: 'LeatherCrafter', subreddit: 'Leathercraft', score: 1500, permalink: '/r/Leathercraft/comments/ppp' },
+      { id: 'p5', title: 'Mechanical keyboard switch lubing guide', author: 'SwitchScientist', subreddit: 'MechanicalKeyboards', score: 4200, permalink: '/r/MechanicalKeyboards/comments/qqq' },
     ],
     connection: {
       theme: 'Traditional Hand Craft',
-      explanation: 'Traditional craftsmanship — woodworking, blacksmithing, and fine writing instruments.',
+      explanation: 'Woodworking, blacksmithing, and fountain pen tuning all rely on patient hand-finished craft.',
       connectedPostIds: ['p1', 'p2', 'p3'],
-      distractorPostIds: ['p4', 'p5', 'p5b', 'p6'],
+      distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      {
-        postId: 'p1',
-        correctSubreddit: 'r/woodworking',
-        options: ['r/woodworking', 'r/carpentry', 'r/Joinery'],
-      },
-      {
-        postId: 'p2',
-        correctSubreddit: 'r/Blacksmith',
-        options: ['r/Blacksmith', 'r/Bladesmith', 'r/metalworking'],
-      },
-      {
-        postId: 'p3',
-        correctSubreddit: 'r/fountainpens',
-        options: ['r/fountainpens', 'r/PenAddicts', 'r/Stationery'],
-      },
+      { postId: 'p1', correctSubreddit: 'r/woodworking', options: ['r/woodworking', 'r/carpentry', 'r/Joinery'] },
+      { postId: 'p2', correctSubreddit: 'r/Blacksmith', options: ['r/Blacksmith', 'r/Bladesmith', 'r/metalworking'] },
+      { postId: 'p3', correctSubreddit: 'r/fountainpens', options: ['r/fountainpens', 'r/PenAddicts', 'r/Stationery'] },
     ],
   },
-  // Day 5: Nov 28, 2026 - Micro Worlds
   {
     id: '2026-11-28',
     date: '2026-11-28',
     posts: [
-      { id: 'p1', title: 'Snowflake under microscope - stellar dendrite', author: 'SnowCrystals', subreddit: 'microscopy', score: 5200, permalink: '/r/microscopy/comments/sss', isConnected: true },
-      { id: 'p2', title: 'Butterfly wing scales at 500x', author: 'WingWatcher', subreddit: 'microscopy', score: 3100, permalink: '/r/microscopy/comments/ttt', isConnected: true },
-      { id: 'p3', title: 'PCB traces - 0.1mm spacing', author: 'HardwareHacker', subreddit: 'PrintedCircuitBoard', score: 1800, permalink: '/r/PrintedCircuitBoard/comments/uuu', isConnected: true },
-      { id: 'p4', title: 'CPU die shot - Ryzen 7000', author: 'SiliconSleuth', subreddit: 'hardware', score: 4500, permalink: '/r/hardware/comments/vvv', isConnected: false },
-      { id: 'p5', title: 'Salt crystal formation - time lapse', author: 'CrystalGrower', subreddit: 'crystals', score: 2200, permalink: '/r/crystals/comments/www', isConnected: false },
-      { id: 'p6', title: 'Vitamin C crystallization patterns', author: 'ChemistryArt', subreddit: 'chemistry', score: 1600, permalink: '/r/chemistry/comments/xxx', isConnected: false },
-      { id: 'p7', title: 'Sand grains from different beaches', author: 'SandCollector', subreddit: 'geology', score: 1200, permalink: '/r/geology/comments/yyy', isConnected: false },
+      { id: 'p1', title: 'Snowflake under microscope - stellar dendrite', author: 'SnowCrystals', subreddit: 'microscopy', score: 5200, permalink: '/r/microscopy/comments/sss' },
+      { id: 'p2', title: 'Butterfly wing scales at 500x', author: 'WingWatcher', subreddit: 'microscopy', score: 3100, permalink: '/r/microscopy/comments/ttt' },
+      { id: 'p3', title: 'PCB traces - 0.1mm spacing', author: 'HardwareHacker', subreddit: 'PrintedCircuitBoard', score: 1800, permalink: '/r/PrintedCircuitBoard/comments/uuu' },
+      { id: 'p4', title: 'Salt crystal formation - time lapse', author: 'CrystalGrower', subreddit: 'crystals', score: 2200, permalink: '/r/crystals/comments/www' },
+      { id: 'p5', title: 'CPU die shot - Ryzen 7000', author: 'SiliconSleuth', subreddit: 'hardware', score: 4500, permalink: '/r/hardware/comments/vvv' },
     ],
     connection: {
       theme: 'Micro Worlds',
-      explanation: 'The hidden beauty at microscopic scale — nature, technology, and chemistry.',
+      explanation: 'Each connected post reveals intricate structure at microscopic scale, whether natural or engineered.',
       connectedPostIds: ['p1', 'p2', 'p3'],
-      distractorPostIds: ['p4', 'p5', 'p6', 'p7'],
+      distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      {
-        postId: 'p1',
-        correctSubreddit: 'r/microscopy',
-        options: ['r/microscopy', 'r/MicroPorn', 'r/MacroPhotography'],
-      },
-      {
-        postId: 'p2',
-        correctSubreddit: 'r/microscopy',
-        options: ['r/microscopy', 'r/Entomology', 'r/BiologyPorn'],
-      },
-      {
-        postId: 'p3',
-        correctSubreddit: 'r/PrintedCircuitBoard',
-        options: ['r/PrintedCircuitBoard', 'r/electronics', 'r/hardware'],
-      },
+      { postId: 'p1', correctSubreddit: 'r/microscopy', options: ['r/microscopy', 'r/MicroPorn', 'r/MacroPhotography'] },
+      { postId: 'p2', correctSubreddit: 'r/microscopy', options: ['r/microscopy', 'r/Entomology', 'r/BiologyPorn'] },
+      { postId: 'p3', correctSubreddit: 'r/PrintedCircuitBoard', options: ['r/PrintedCircuitBoard', 'r/electronics', 'r/hardware'] },
     ],
   },
-  // Day 6: Nov 29, 2026 - Night & Light
   {
     id: '2026-11-29',
     date: '2026-11-29',
     posts: [
-      { id: 'p1', title: 'Milky Way over abandoned gas station', author: 'AstroNomad', subreddit: 'astrophotography', score: 6200, permalink: '/r/astrophotography/comments/yyy', isConnected: true },
-      { id: 'p2', title: 'Light painting - orbital tool', author: 'LightPainter', subreddit: 'lightpainting', score: 2800, permalink: '/r/lightpainting/comments/zzz', isConnected: true },
-      { id: 'p3', title: 'Headlamp beam comparison - 2024 models', author: 'GearTester', subreddit: 'flashlight', score: 3400, permalink: '/r/flashlight/comments/aaaa', isConnected: true },
-      { id: 'p4', title: 'Camping lantern runtime test', author: 'CampGear', subreddit: 'CampingGear', score: 1200, permalink: '/r/CampingGear/comments/bbbb', isConnected: false },
-      { id: 'p5', title: 'Bioluminescent waves at midnight', author: 'OceanGlow', subreddit: 'natureismetal', score: 8500, permalink: '/r/natureismetal/comments/cccc', isConnected: false },
-      { id: 'p6', title: 'Firefly synchronization in Great Smokies', author: 'BugWatcher', subreddit: 'Entomology', score: 2100, permalink: '/r/Entomology/comments/dddd', isConnected: false },
-      { id: 'p7', title: 'Aurora borealis over Iceland', author: 'AuroraHunter', subreddit: 'astrophotography', score: 4500, permalink: '/r/astrophotography/comments/eeee', isConnected: false },
+      { id: 'p1', title: 'Milky Way over abandoned gas station', author: 'AstroNomad', subreddit: 'astrophotography', score: 6200, permalink: '/r/astrophotography/comments/yyy' },
+      { id: 'p2', title: 'Light painting - orbital tool', author: 'LightPainter', subreddit: 'lightpainting', score: 2800, permalink: '/r/lightpainting/comments/zzz' },
+      { id: 'p3', title: 'Headlamp beam comparison - 2024 models', author: 'GearTester', subreddit: 'flashlight', score: 3400, permalink: '/r/flashlight/comments/aaaa' },
+      { id: 'p4', title: 'Bioluminescent waves at midnight', author: 'OceanGlow', subreddit: 'natureismetal', score: 8500, permalink: '/r/natureismetal/comments/cccc' },
+      { id: 'p5', title: 'Firefly synchronization in Great Smokies', author: 'BugWatcher', subreddit: 'Entomology', score: 2100, permalink: '/r/Entomology/comments/dddd' },
     ],
     connection: {
       theme: 'Night & Light',
-      explanation: 'Photography and tools for the night — stars, light painting, and portable illumination.',
+      explanation: 'Photographing stars, painting with light, and comparing headlamps all center on working with light after dark.',
       connectedPostIds: ['p1', 'p2', 'p3'],
-      distractorPostIds: ['p4', 'p5', 'p6', 'p7'],
+      distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      {
-        postId: 'p1',
-        correctSubreddit: 'r/astrophotography',
-        options: ['r/astrophotography', 'r/EarthPorn', 'r/SpacePorn'],
-      },
-      {
-        postId: 'p2',
-        correctSubreddit: 'r/lightpainting',
-        options: ['r/lightpainting', 'r/photography', 'r/ExposurePorn'],
-      },
-      {
-        postId: 'p3',
-        correctSubreddit: 'r/flashlight',
-        options: ['r/flashlight', 'r/EDC', 'r/CampingGear'],
-      },
+      { postId: 'p1', correctSubreddit: 'r/astrophotography', options: ['r/astrophotography', 'r/EarthPorn', 'r/SpacePorn'] },
+      { postId: 'p2', correctSubreddit: 'r/lightpainting', options: ['r/lightpainting', 'r/photography', 'r/ExposurePorn'] },
+      { postId: 'p3', correctSubreddit: 'r/flashlight', options: ['r/flashlight', 'r/EDC', 'r/CampingGear'] },
     ],
   },
-  // Day 7: Nov 30, 2026 - Restored & Revived
   {
     id: '2026-11-30',
     date: '2026-11-30',
     posts: [
-      { id: 'p1', title: '1920s waffle iron restoration', author: 'CastIronChef', subreddit: 'castiron', score: 3800, permalink: '/r/castiron/comments/eeee', isConnected: true },
-      { id: 'p2', title: 'Vintage tube amp brought back to life', author: 'AudiophileFix', subreddit: 'vintageaudio', score: 2200, permalink: '/r/vintageaudio/comments/ffff', isConnected: true },
-      { id: 'p3', title: 'Rebinding a 1850s family bible', author: 'BookBinder', subreddit: 'bookbinding', score: 1500, permalink: '/r/bookbinding/comments/gggg', isConnected: true },
-      { id: 'p4', title: 'Restored 1960s mechanical watch', author: 'WatchRestorer', subreddit: 'WatchRepair', score: 1800, permalink: '/r/WatchRepair/comments/hhhh', isConnected: false },
-      { id: 'p5', title: 'Rusted pocket knife to mirror finish', author: 'KnifeRestore', subreddit: 'knives', score: 2500, permalink: '/r/knives/comments/iiii', isConnected: false },
-      { id: 'p6', title: 'Grandmother\'s sewing machine restored', author: 'SewingHeirloom', subreddit: 'sewing', score: 1200, permalink: '/r/sewing/comments/jjjj', isConnected: false },
-      { id: 'p7', title: '1950s radio restoration', author: 'RadioRestorer', subreddit: 'vintageaudio', score: 900, permalink: '/r/vintageaudio/comments/kkkk', isConnected: false },
+      { id: 'p1', title: '1920s waffle iron restoration', author: 'CastIronChef', subreddit: 'castiron', score: 3800, permalink: '/r/castiron/comments/eeee' },
+      { id: 'p2', title: 'Vintage tube amp brought back to life', author: 'AudiophileFix', subreddit: 'vintageaudio', score: 2200, permalink: '/r/vintageaudio/comments/ffff' },
+      { id: 'p3', title: 'Rebinding a 1850s family bible', author: 'BookBinder', subreddit: 'bookbinding', score: 1500, permalink: '/r/bookbinding/comments/gggg' },
+      { id: 'p4', title: 'Restored 1960s mechanical watch', author: 'WatchRestorer', subreddit: 'WatchRepair', score: 1800, permalink: '/r/WatchRepair/comments/hhhh' },
+      { id: 'p5', title: 'Grandmother’s sewing machine restored', author: 'SewingHeirloom', subreddit: 'sewing', score: 1200, permalink: '/r/sewing/comments/jjjj' },
     ],
     connection: {
       theme: 'Restored & Revived',
-      explanation: 'Bringing vintage objects back to life — cast iron, electronics, books, and tools.',
+      explanation: 'These posts share the satisfaction of bringing old objects back to life through careful restoration.',
       connectedPostIds: ['p1', 'p2', 'p3'],
-      distractorPostIds: ['p4', 'p5', 'p6', 'p7'],
+      distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      {
-        postId: 'p1',
-        correctSubreddit: 'r/castiron',
-        options: ['r/castiron', 'r/Restoration', 'r/Antiques'],
-      },
-      {
-        postId: 'p2',
-        correctSubreddit: 'r/vintageaudio',
-        options: ['r/vintageaudio', 'r/audiophile', 'r/DIYAudio'],
-      },
-      {
-        postId: 'p3',
-        correctSubreddit: 'r/bookbinding',
-        options: ['r/bookbinding', 'r/Restoration', 'r/Calligraphy'],
-      },
+      { postId: 'p1', correctSubreddit: 'r/castiron', options: ['r/castiron', 'r/Restoration', 'r/Antiques'] },
+      { postId: 'p2', correctSubreddit: 'r/vintageaudio', options: ['r/vintageaudio', 'r/audiophile', 'r/DIYAudio'] },
+      { postId: 'p3', correctSubreddit: 'r/bookbinding', options: ['r/bookbinding', 'r/Restoration', 'r/Calligraphy'] },
     ],
   },
 ];
 
-/**
- * Initialize default puzzles in KV (run once on deploy)
- */
+export type UserProgress = {
+  streak: number;
+  totalCompleted: number;
+  flairTier: FlairTier;
+};
+
 export async function seedPuzzles(): Promise<void> {
   for (const puzzle of DEFAULT_PUZZLES) {
     await redis.set(`${KEYS.PUZZLE}${puzzle.id}`, JSON.stringify(puzzle));
   }
 }
 
-/**
- * Get puzzle by ID (defaults to today, with fallback to first available)
- */
+export async function ensurePuzzlesSeeded(): Promise<void> {
+  const firstPuzzle = DEFAULT_PUZZLES[0];
+  if (!firstPuzzle) return;
+  const existing = await redis.get(`${KEYS.PUZZLE}${firstPuzzle.id}`);
+  if (!existing) {
+    await seedPuzzles();
+  }
+}
+
+function parsePuzzle(data: string): Puzzle {
+  const parsed: Puzzle = JSON.parse(data);
+  return parsed;
+}
+
+function parseSession(data: string, puzzleId: string): GameSession {
+  const stored: Partial<GameSession> = JSON.parse(data);
+  return normalizeSession(stored, puzzleId);
+}
+
+function normalizeStage(value: unknown): GameState {
+  if (value === 'STAGE_1' || value === 'STAGE_1_READY' || value === 'STAGE_1_FIRST_SUBMISSION') {
+    return 'STAGE_1_READY';
+  }
+  if (value === 'STAGE_1_SECOND_CHANCE') return 'STAGE_1_SECOND_CHANCE';
+  if (value === 'STAGE_1_SUCCESS') return 'STAGE_1_SUCCESS';
+  if (value === 'STAGE_1_FAILED') return 'STAGE_1_FAILED';
+  if (value === 'STAGE_2' || value === 'STAGE_2_READY') return 'STAGE_2_READY';
+  if (value === 'STAGE_2_QUESTION_2') return 'STAGE_2_QUESTION_2';
+  if (value === 'STAGE_2_QUESTION_3') return 'STAGE_2_QUESTION_3';
+  if (value === 'RESULTS') return 'RESULTS';
+  if (value === 'COMPLETED') return 'COMPLETED';
+  return 'STAGE_1_READY';
+}
+
+function normalizeSession(stored: Partial<GameSession>, puzzleId: string): GameSession {
+  const normalizedStage = normalizeStage(stored.stage);
+  const stage1Correct =
+    stored.stage1Correct === true ||
+    normalizedStage === 'STAGE_1_SUCCESS' ||
+    normalizedStage === 'STAGE_2_READY' ||
+    normalizedStage === 'STAGE_2_QUESTION_2' ||
+    normalizedStage === 'STAGE_2_QUESTION_3' ||
+    normalizedStage === 'RESULTS' ||
+    normalizedStage === 'COMPLETED';
+
+  const selectedPostIds: string[] = [];
+  if (Array.isArray(stored.selectedPostIds)) {
+    for (const id of stored.selectedPostIds) {
+      if (typeof id === 'string') selectedPostIds.push(id);
+    }
+  }
+
+  const stage2Answers: Stage2Answer[] = [];
+  if (Array.isArray(stored.stage2Answers)) {
+    for (const item of stored.stage2Answers) {
+      const answer: Partial<Stage2Answer> = item;
+      if (
+        typeof answer.postId === 'string' &&
+        typeof answer.selectedSubreddit === 'string' &&
+        typeof answer.isCorrect === 'boolean' &&
+        typeof answer.lockedAt === 'number'
+      ) {
+        stage2Answers.push({
+          postId: answer.postId,
+          selectedSubreddit: answer.selectedSubreddit,
+          isCorrect: answer.isCorrect,
+          lockedAt: answer.lockedAt,
+        });
+      }
+    }
+  }
+
+  const stage1Attempts = typeof stored.stage1Attempts === 'number' ? stored.stage1Attempts : 0;
+  const startedAt = typeof stored.startedAt === 'number' ? stored.startedAt : Date.now();
+  const storedCompletedAt = typeof stored.completedAt === 'number' ? stored.completedAt : undefined;
+  const stage: GameState = storedCompletedAt ? 'COMPLETED' : normalizedStage;
+
+  return {
+    puzzleId: typeof stored.puzzleId === 'string' ? stored.puzzleId : puzzleId,
+    stage,
+    selectedPostIds,
+    stage1Attempts,
+    stage1Correct,
+    stage2Answers,
+    stage2CurrentQuestion:
+      typeof stored.stage2CurrentQuestion === 'number'
+        ? stored.stage2CurrentQuestion
+        : stage2Answers.length,
+    startedAt,
+    completedAt: storedCompletedAt,
+    score: stored.score,
+    streak: stored.streak,
+  };
+}
+
+function sessionKey(userId: string, puzzleId: string): string {
+  return `${KEYS.SESSION}${userId}:${puzzleId}`;
+}
+
+async function readSession(userId: string, puzzleId: string): Promise<GameSession> {
+  const data = await redis.get(sessionKey(userId, puzzleId));
+  if (!data) throw new Error('Session not found');
+  const session = parseSession(data, puzzleId);
+  return session;
+}
+
+async function saveSession(userId: string, session: GameSession): Promise<void> {
+  await redis.set(sessionKey(userId, session.puzzleId), JSON.stringify(session));
+}
+
 export async function getPuzzle(puzzleId?: string): Promise<Puzzle | null> {
+  await ensurePuzzlesSeeded();
+
   const requestedId = puzzleId ?? getTodayPuzzleId();
-  
-  // Try requested ID first
   const data = await redis.get(`${KEYS.PUZZLE}${requestedId}`);
-  if (data) return JSON.parse(data);
-  
-  // Fallback: try today's date
+  if (data) return parsePuzzle(data);
+
   if (requestedId !== getTodayPuzzleId()) {
     const todayData = await redis.get(`${KEYS.PUZZLE}${getTodayPuzzleId()}`);
-    if (todayData) return JSON.parse(todayData);
+    if (todayData) return parsePuzzle(todayData);
   }
-  
-  // Fallback: get first available puzzle
+
   for (const puzzle of DEFAULT_PUZZLES) {
-    const data = await redis.get(`${KEYS.PUZZLE}${puzzle.id}`);
-    if (data) return JSON.parse(data);
+    const fallbackData = await redis.get(`${KEYS.PUZZLE}${puzzle.id}`);
+    if (fallbackData) return parsePuzzle(fallbackData);
   }
-  
-  // Last resort: return first default puzzle (shouldn't happen if seeded)
+
   return DEFAULT_PUZZLES[0] ?? null;
 }
 
-/**
- * Get today's puzzle ID in YYYY-MM-DD format
- */
-export function getTodayPuzzleId(): string {
-  const now = new Date();
-  const isoString = now.toISOString();
-  const parts = isoString.split('T');
-  const datePart = parts[0];
-  return datePart ?? '2026-01-01';
-}
-
-/**
- * Get or create player session for a puzzle
- */
 export async function getSession(
   userId: string,
   puzzleId: string
 ): Promise<{ session: GameSession | null; isNew: boolean }> {
-  const key = `${KEYS.SESSION}${userId}:${puzzleId}`;
-  const data = await redis.get(key);
-
+  const data = await redis.get(sessionKey(userId, puzzleId));
   if (data) {
-    return { session: JSON.parse(data), isNew: false };
+    const session = parseSession(data, puzzleId);
+    await saveSession(userId, session);
+    return { session, isNew: false };
   }
 
-  // Create new session
   const session: GameSession = {
     puzzleId,
-    stage: 'STAGE_1',
+    stage: 'STAGE_1_READY',
     selectedPostIds: [],
     stage1Attempts: 0,
     stage1Correct: false,
@@ -406,244 +348,261 @@ export async function getSession(
     stage2CurrentQuestion: 0,
     startedAt: Date.now(),
   };
-  await redis.set(key, JSON.stringify(session));
+  await saveSession(userId, session);
   return { session, isNew: true };
 }
 
-/**
- * Save player's session
- */
-export async function saveSession(userId: string, session: GameSession): Promise<void> {
-  const key = `${KEYS.SESSION}${userId}:${session.puzzleId}`;
-  await redis.set(key, JSON.stringify(session));
+function countCorrectSelectedPosts(puzzle: Puzzle, selectedPostIds: string[]): number {
+  const correctIds = new Set(puzzle.connection.connectedPostIds);
+  let count = 0;
+  for (const id of selectedPostIds) {
+    if (correctIds.has(id)) count += 1;
+  }
+  return count;
 }
 
-/**
- * Submit Stage 1 answer (selected post IDs)
- */
 export async function submitStage1(
   userId: string,
   puzzleId: string,
   selectedPostIds: string[]
-): Promise<{ success: boolean; correct: boolean; attempts: number; session: GameSession }> {
+): Promise<{
+  success: boolean;
+  correct: boolean;
+  attempts: number;
+  correctCount: number;
+  feedback: {
+    correctCount: number;
+    attempts: number;
+    canRetry: boolean;
+    failed: boolean;
+  };
+  session: GameSession;
+}> {
   const puzzle = await getPuzzle(puzzleId);
   if (!puzzle) throw new Error('Puzzle not found');
 
-  const sessionKey = `${KEYS.SESSION}${userId}:${puzzleId}`;
-  const sessionData = await redis.get(sessionKey);
-  if (!sessionData) throw new Error('Session not found');
+  const session = await readSession(userId, puzzleId);
+  const correctCount = countCorrectSelectedPosts(puzzle, selectedPostIds);
 
-  const session: GameSession = JSON.parse(sessionData);
+  if (session.stage1Correct) {
+    return {
+      success: true,
+      correct: true,
+      attempts: session.stage1Attempts,
+      correctCount: 3,
+      feedback: { correctCount: 3, attempts: session.stage1Attempts, canRetry: false, failed: false },
+      session,
+    };
+  }
+
+  if (session.stage1Attempts >= 2) {
+    return {
+      success: false,
+      correct: false,
+      attempts: session.stage1Attempts,
+      correctCount,
+      feedback: { correctCount, attempts: session.stage1Attempts, canRetry: false, failed: true },
+      session,
+    };
+  }
+
+  session.selectedPostIds = selectedPostIds;
   session.stage1Attempts += 1;
 
-  // Check if correct (exactly 3 posts matching connection.connectedPostIds)
-  const correctPostIds = new Set(puzzle.connection.connectedPostIds);
-  
-  let correct = false;
-  if (selectedPostIds.length === 3) {
-    let allMatch = true;
-    for (const pid of selectedPostIds) {
-      if (!correctPostIds.has(pid)) {
-        allMatch = false;
-        break;
-      }
-    }
-    if (allMatch && selectedPostIds.length === 3) {
-      correct = true;
-    }
-  }
-
-  if (correct) {
+  if (correctCount === 3) {
     session.stage1Correct = true;
-    session.stage = 'STAGE_2';
-    session.selectedPostIds = selectedPostIds;
-    session.stage1Attempts = 1; // Reset for tracking
+    session.stage = 'STAGE_1_SUCCESS';
     session.stage2CurrentQuestion = 0;
     session.stage2Answers = [];
-    await redis.set(`${KEYS.SESSION}${userId}:${puzzleId}`, JSON.stringify(session));
-    return { success: true, correct: true, attempts: 1, session };
+    await saveSession(userId, session);
+    return {
+      success: true,
+      correct: true,
+      attempts: session.stage1Attempts,
+      correctCount,
+      feedback: { correctCount, attempts: session.stage1Attempts, canRetry: false, failed: false },
+      session,
+    };
   }
 
-  // Incorrect
-  if (session.stage1Attempts >= 2) {
-    // Second attempt failed
-    session.stage1Correct = false;
-    session.selectedPostIds = selectedPostIds;
-    session.stage = 'STAGE_1'; // Keep as STAGE_1, but mark as failed via stage1Correct=false
-    await redis.set(`${KEYS.SESSION}${userId}:${puzzleId}`, JSON.stringify(session));
-    return { success: false, correct: false, attempts: 2, session };
-  }
-
-  // First attempt failed, give second chance
-  session.selectedPostIds = selectedPostIds;
-  await redis.set(`${KEYS.SESSION}${userId}:${puzzleId}`, JSON.stringify(session));
-  return { success: false, correct: false, attempts: 1, session };
+  const failed = session.stage1Attempts >= 2;
+  session.stage = failed ? 'STAGE_1_FAILED' : 'STAGE_1_SECOND_CHANCE';
+  await saveSession(userId, session);
+  return {
+    success: false,
+    correct: false,
+    attempts: session.stage1Attempts,
+    correctCount,
+    feedback: { correctCount, attempts: session.stage1Attempts, canRetry: !failed, failed },
+    session,
+  };
 }
 
-/**
- * Submit Stage 2 answer (subreddit guess for a specific post)
- */
+function stageForQuestion(questionIndex: number): GameState {
+  if (questionIndex === 1) return 'STAGE_2_QUESTION_2';
+  if (questionIndex === 2) return 'STAGE_2_QUESTION_3';
+  return 'STAGE_2_READY';
+}
+
 export async function submitStage2(
   userId: string,
   puzzleId: string,
   postId: string,
   selectedSubreddit: string
-): Promise<{ correct: boolean; answer: Stage2Answer; nextQuestion: number; session: GameSession }> {
+): Promise<{
+  correct: boolean;
+  answer: Stage2Answer;
+  nextQuestion: number;
+  session: GameSession;
+}> {
   const puzzle = await getPuzzle(puzzleId);
   if (!puzzle) throw new Error('Puzzle not found');
 
-  const sessionKey = `${KEYS.SESSION}${userId}:${puzzleId}`;
-  const sessionData = await redis.get(sessionKey);
-  if (!sessionData) throw new Error('Session not found');
+  const session = await readSession(userId, puzzleId);
+  if (!session.stage1Correct) throw new Error('Stage 1 is not complete');
 
-  const session: GameSession = JSON.parse(sessionData);
   const questionIndex = session.stage2CurrentQuestion;
-  
-  if (questionIndex >= puzzle.subredditQuestions.length) {
-    throw new Error('No more questions');
+  const existingAnswer = session.stage2Answers[questionIndex];
+  if (existingAnswer) {
+    return {
+      correct: existingAnswer.isCorrect,
+      answer: existingAnswer,
+      nextQuestion: session.stage2CurrentQuestion,
+      session,
+    };
   }
 
   const question = puzzle.subredditQuestions[questionIndex];
-  if (!question) {
-    throw new Error('Question not found');
-  }
-  if (question.postId !== postId) {
-    throw new Error('Invalid post for current question');
-  }
+  if (!question) throw new Error('No more questions');
+  if (question.postId !== postId) throw new Error('Invalid post for current question');
+  if (!question.options.includes(selectedSubreddit)) throw new Error('Invalid option');
 
-  const isCorrect = selectedSubreddit === question.correctSubreddit;
   const answer: Stage2Answer = {
     postId,
     selectedSubreddit,
-    isCorrect,
+    isCorrect: selectedSubreddit === question.correctSubreddit,
     lockedAt: Date.now(),
   };
 
   session.stage2Answers.push(answer);
   session.stage2CurrentQuestion += 1;
+  session.stage =
+    session.stage2CurrentQuestion >= puzzle.subredditQuestions.length
+      ? 'RESULTS'
+      : stageForQuestion(session.stage2CurrentQuestion);
 
-  // If this was the last question, move to results
-  if (session.stage2CurrentQuestion >= puzzle.subredditQuestions.length) {
-    session.stage = 'RESULTS';
-  }
-
-  await redis.set(`${KEYS.SESSION}${userId}:${puzzleId}`, JSON.stringify(session));
-  return { correct: isCorrect, answer, nextQuestion: session.stage2CurrentQuestion, session };
+  await saveSession(userId, session);
+  return {
+    correct: answer.isCorrect,
+    answer,
+    nextQuestion: session.stage2CurrentQuestion,
+    session,
+  };
 }
 
-/**
- * Calculate final score and update streak
- */
-export async function calculateScore(
-  userId: string,
-  puzzleId: string
-): Promise<GameScore> {
+async function getProgress(userId: string): Promise<{ streak: number; totalCompleted: number }> {
+  const streakData = await redis.get(`${KEYS.STREAK}${userId}`);
+  const totalData = await redis.get(`${KEYS.TOTAL_COMPLETED}${userId}`);
+  return {
+    streak: streakData ? parseInt(streakData, 10) : 0,
+    totalCompleted: totalData ? parseInt(totalData, 10) : 0,
+  };
+}
+
+function toUtcDate(value: string): Date | null {
+  const parts = value.split('-');
+  if (parts.length !== 3) return null;
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function isConsecutiveDate(previous: string, current: string): boolean {
+  const previousDate = toUtcDate(previous);
+  const currentDate = toUtcDate(current);
+  if (!previousDate || !currentDate) return false;
+  return currentDate.getTime() - previousDate.getTime() === 86_400_000;
+}
+
+async function completeDailyAttempt(userId: string): Promise<{ streak: number; totalCompleted: number }> {
+  const today = getTodayPuzzleId();
+  const playedKey = `${KEYS.PLAYED}${userId}:${today}`;
+  const alreadyPlayed = await redis.get(playedKey);
+  if (alreadyPlayed) return getProgress(userId);
+
+  await redis.set(playedKey, '1');
+
+  const progress = await getProgress(userId);
+  const lastCompletedDate = await redis.get(`${KEYS.LAST_COMPLETED}${userId}`);
+  const streak =
+    lastCompletedDate && isConsecutiveDate(lastCompletedDate, today)
+      ? progress.streak + 1
+      : 1;
+  const totalCompleted = progress.totalCompleted + 1;
+
+  await redis.set(`${KEYS.STREAK}${userId}`, streak.toString());
+  await redis.set(`${KEYS.LAST_COMPLETED}${userId}`, today);
+  await redis.set(`${KEYS.TOTAL_COMPLETED}${userId}`, totalCompleted.toString());
+
+  return { streak, totalCompleted };
+}
+
+export async function calculateScore(userId: string, puzzleId: string): Promise<GameScore> {
   const puzzle = await getPuzzle(puzzleId);
   if (!puzzle) throw new Error('Puzzle not found');
 
-  const sessionKey = `${KEYS.SESSION}${userId}:${puzzleId}`;
-  const sessionData = await redis.get(sessionKey);
-  if (!sessionData) throw new Error('Session not found');
+  const session = await readSession(userId, puzzleId);
 
-  const session: GameSession = JSON.parse(sessionData);
-  
-  if (!session.stage1Correct) {
-    // Failed Stage 1
-    const score: GameScore = {
-      connectionSolved: false,
-      correctSubredditGuesses: 0,
-      starsEarned: 0,
-      streak: await updateStreak(userId, false),
-      flairTier: getFlairTier(0),
+  if (session.score) {
+    const progress = await getProgress(userId);
+    return {
+      ...session.score,
+      streak: session.score.streak || progress.streak,
+      totalCompleted: session.score.totalCompleted || progress.totalCompleted,
+      flairTier: session.score.flairTier || getFlairTier(progress.totalCompleted),
     };
-    return score;
   }
 
-  // Count correct subreddit guesses
-  let correctGuesses = 0;
-  for (const answer of session.stage2Answers) {
-    if (answer.isCorrect) correctGuesses++;
+  const stage1Finished = session.stage === 'STAGE_1_FAILED' || session.stage1Attempts >= 2;
+  if (!session.stage1Correct && !stage1Finished) {
+    throw new Error('Stage 1 is still in progress');
+  }
+  if (
+    session.stage1Correct &&
+    session.stage2Answers.length < puzzle.subredditQuestions.length
+  ) {
+    throw new Error('Stage 2 is still in progress');
   }
 
-  const starsEarned = correctGuesses; // 1 star per correct subreddit (0-3)
-  const newStreak = await updateStreak(userId, correctGuesses > 0);
-  const flairTier = getFlairTier(newStreak);
+  const progress = await completeDailyAttempt(userId);
+  const correctGuesses = session.stage1Correct
+    ? session.stage2Answers.filter((answer) => answer.isCorrect).length
+    : 0;
 
   const score: GameScore = {
-    connectionSolved: true,
+    connectionSolved: session.stage1Correct,
     correctSubredditGuesses: correctGuesses,
-    starsEarned,
-    streak: newStreak,
-    flairTier,
+    starsEarned: session.stage1Correct ? correctGuesses : 0,
+    streak: progress.streak,
+    totalCompleted: progress.totalCompleted,
+    flairTier: getFlairTier(progress.totalCompleted),
   };
 
-  // Save completed session with score
-  const finalSessionKey = `${KEYS.SESSION}${userId}:${puzzleId}`;
-  const finalSessionData = await redis.get(finalSessionKey);
-  if (finalSessionData) {
-    const session: GameSession = JSON.parse(finalSessionData);
-    session.score = score;
-    session.streak = newStreak;
-    session.completedAt = Date.now();
-    session.stage = 'RESULTS';
-    await redis.set(`${KEYS.SESSION}${userId}:${puzzleId}`, JSON.stringify(session));
-  }
-
-  // Mark as played today
-  await redis.set(`${KEYS.PLAYED}${userId}:${getTodayPuzzleId()}`, '1');
+  session.score = score;
+  session.streak = progress.streak;
+  session.completedAt = Date.now();
+  session.stage = 'COMPLETED';
+  await saveSession(userId, session);
 
   return score;
 }
 
-/**
- * Update streak in Redis
- */
-async function updateStreak(userId: string, won: boolean): Promise<number> {
-  const streakKey = `${KEYS.STREAK}${userId}`;
-  const playedKey = `${KEYS.PLAYED}${userId}:${getTodayPuzzleId()}`;
-
-  // Check if already played today
-  const alreadyPlayed = await redis.get(playedKey);
-  if (alreadyPlayed) {
-    const streakVal = await redis.get(streakKey);
-    return streakVal ? parseInt(streakVal, 10) : 0;
-  }
-
-  // Mark as played today
-  await redis.set(playedKey, '1');
-
-  if (won) {
-    const streakVal = await redis.get(streakKey);
-    const currentStreak = streakVal ? parseInt(streakVal, 10) : 0;
-    const newStreak = currentStreak + 1;
-    await redis.set(streakKey, newStreak.toString());
-    return newStreak;
-  } else {
-    // Reset streak on loss
-    await redis.set(streakKey, '0');
-    return 0;
-  }
-}
-
-/**
- * Get current streak for user
- */
-export async function getStreak(userId: string): Promise<number> {
-  const streakKey = `${KEYS.STREAK}${userId}`;
-  const streak = await redis.get(streakKey);
-  return streak ? parseInt(streak, 10) : 0;
-}
-
-/**
- * Get flair tier from streak
- */
-function getFlairTier(streak: number): FlairTier {
-  const tiers = [
-    { min: 60, tier: 'Converger' as const },
-    { min: 30, tier: 'Community Explorer' as const },
-    { min: 15, tier: 'Pattern Seeker' as const },
-    { min: 5, tier: 'Connector' as const },
-    { min: 0, tier: 'Novice' as const },
-  ];
-  return tiers.find((t) => streak >= t.min)?.tier ?? 'Novice';
+export async function getStreak(userId: string): Promise<UserProgress> {
+  const progress = await getProgress(userId);
+  return {
+    ...progress,
+    flairTier: getFlairTier(progress.totalCompleted),
+  };
 }
