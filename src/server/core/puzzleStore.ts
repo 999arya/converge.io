@@ -24,6 +24,8 @@ export { getTodayPuzzleId };
 const KEYS = {
   PUZZLE: 'puzzle:',
   PUZZLE_VERSION: 'puzzles:version',
+  PUZZLE_THUMBNAILS: 'puzzles:thumbnails',
+  LAST_SEED_ATTEMPT: 'puzzles:lastSeedAttempt',
   SESSION: 'session:',
   STREAK: 'streak:',
   PLAYED: 'played:',
@@ -407,19 +409,32 @@ export type UserProgress = {
   flairTier: FlairTier;
 };
 
-const PUZZLE_VERSION = '3';
+const PUZZLE_VERSION = '4';
+const THUMBNAIL_RETRY_MS = 10 * 60 * 1000;
 
 export async function seedPuzzles(): Promise<void> {
+  let thumbnailCount = 0;
+
   for (const puzzle of DEFAULT_PUZZLES) {
     const enrichedPuzzle = await enrichPuzzleWithRealPosts(puzzle);
+    thumbnailCount += enrichedPuzzle.posts.filter((post) => post.thumbnailUrl).length;
     await redis.set(`${KEYS.PUZZLE}${puzzle.id}`, JSON.stringify(enrichedPuzzle));
   }
+
   await redis.set(KEYS.PUZZLE_VERSION, PUZZLE_VERSION);
+  await redis.set(KEYS.PUZZLE_THUMBNAILS, thumbnailCount >= 25 ? '1' : '0');
+  await redis.set(KEYS.LAST_SEED_ATTEMPT, Date.now().toString());
 }
 
 export async function ensurePuzzlesSeeded(): Promise<void> {
   const currentVersion = await redis.get(KEYS.PUZZLE_VERSION);
-  if (currentVersion !== PUZZLE_VERSION) {
+  const hasThumbnails = await redis.get(KEYS.PUZZLE_THUMBNAILS);
+  const lastAttemptValue = await redis.get(KEYS.LAST_SEED_ATTEMPT);
+  const lastAttempt = lastAttemptValue ? Number(lastAttemptValue) : 0;
+  const retryDue =
+    !Number.isFinite(lastAttempt) || Date.now() - lastAttempt >= THUMBNAIL_RETRY_MS;
+
+  if (currentVersion !== PUZZLE_VERSION || (hasThumbnails !== '1' && retryDue)) {
     await seedPuzzles();
   }
 }

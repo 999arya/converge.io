@@ -4,16 +4,72 @@
 
 import './index.css';
 
-import { navigateTo, requestExpandedMode } from '@devvit/web/client';
-import { StrictMode } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { navigateTo, requestExpandedMode } from '@devvit/web/client';
+import type { GetPuzzleResponse } from '../shared/api';
+import type { PublicPuzzlePost } from '../shared/gameTypes';
+
+type SplashPostProps = {
+  post: PublicPuzzlePost;
+};
+
+const SplashPost = ({ post }: SplashPostProps) => {
+  const [imageFailed, setImageFailed] = useState(false);
+  const showThumbnail = Boolean(post.thumbnailUrl) && !imageFailed;
+
+  return (
+    <div className="flex items-center gap-3 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+      {showThumbnail ? (
+        <img
+          src={post.thumbnailUrl}
+          alt=""
+          className="w-12 h-12 rounded object-cover shrink-0 bg-gray-200 dark:bg-gray-700"
+          loading="lazy"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <div className="w-12 h-12 rounded shrink-0 bg-gradient-to-br from-orange-500 via-purple-500 to-blue-500" />
+      )}
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">
+          {post.title}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          u/{post.author} · {post.score.toLocaleString()} ↑
+        </p>
+      </div>
+    </div>
+  );
+};
 
 export const Splash = () => {
+  const [posts, setPosts] = useState<PublicPuzzlePost[]>([]);
   const puzzleDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
   });
+
+  useEffect(() => {
+    let active = true;
+
+    const loadPreview = async () => {
+      try {
+        const response = await fetch('/api/game/puzzle');
+        if (!response.ok) return;
+        const data: GetPuzzleResponse = await response.json();
+        if (active) setPosts(data.puzzle.posts.slice(0, 4));
+      } catch {
+        // Keep the empty preview if the feed view cannot load the puzzle yet.
+      }
+    };
+
+    void loadPreview();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="flex flex-col h-full min-h-[300px] bg-white dark:bg-gray-900">
@@ -45,20 +101,14 @@ export const Splash = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto">
-          {[
-            'My sourdough starter finally doubled in 4 hours!',
-            'Crumb shot: 75% hydration, cold retard 18h',
-            'My Ender 3 prints perfect benchys now',
-            'First loaf in my new Challenger bread pan',
-          ].map((title) => (
-            <div
-              key={title}
-              className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
-            >
-              <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">{title}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+          {posts.length > 0 ? (
+            posts.map((post) => <SplashPost key={post.id} post={post} />)
+          ) : (
+            <div className="col-span-full flex items-center justify-center h-24 text-xs text-gray-500 dark:text-gray-400">
+              Loading today’s posts…
             </div>
-          ))}
+          )}
         </div>
       </div>
 
