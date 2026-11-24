@@ -264,7 +264,7 @@ export const useGame = () => {
     submitAnswer,
     resetGame,
     // Computed
-    groupedCount: state.session?.playerGroups.reduce((sum, g) => sum + g.postIds.length, 0) ?? 0,
+    groupedCount: state.session?.playerGroups?.reduce((sum, g) => sum + g.postIds.length, 0) ?? 0,
     totalPosts: state.puzzle?.posts.length ?? 0,
   };
 }
