@@ -1,13 +1,11 @@
 /**
- * Game API Routes - tRPC endpoints for Converge game
+ * Game API Routes - tRPC endpoints for Converge game (New 5-Post, 2-Stage Spec)
  */
 
 import { Hono } from 'hono';
 import { context } from '@devvit/web/server';
 import type {
   GetPuzzleResponse,
-  SubmitGroupsRequest,
-  SubmitGroupsResponse,
   GetStreakResponse,
   ErrorResponse,
 } from '../../shared/api';
@@ -15,7 +13,9 @@ import type { Puzzle } from '../../shared/gameTypes';
 import {
   getPuzzle,
   getSession,
-  submitAnswer,
+  submitStage1,
+  submitStage2,
+  calculateScore,
   getStreak,
   getTodayPuzzleId,
   seedPuzzles,
@@ -26,6 +26,7 @@ export const gameApi = new Hono();
 /**
  * GET /api/game/puzzle
  * Get today's puzzle (or specific puzzle) and existing session
+ * Returns puzzle with posts but hides subreddit names and connection info
  */
 gameApi.get('/puzzle', async (c) => {
   const { postId, userId } = context;
@@ -58,17 +59,29 @@ gameApi.get('/puzzle', async (c) => {
     // Check for existing session
     const { session } = await getSession(userId, puzzleId);
 
-    // Return puzzle without revealing groups (hide isCorrectGroup, groups details)
+    // Return puzzle without revealing subreddits or connection info
+    const safePosts = puzzle.posts.map((p) => ({ 
+      ...p, 
+      isConnected: undefined, // Hide connection info
+      subreddit: 'r/????' // Hide subreddit
+    }));
+    const safeConnection = {
+      ...puzzle.connection,
+      theme: '???',
+      explanation: '???',
+      connectedPostIds: [],
+      distractorPostIds: [],
+    };
+    const safeQuestions = puzzle.subredditQuestions.map((q) => ({
+      ...q,
+      correctSubreddit: '???',
+      options: q.options.map(() => '???'),
+    }));
     const safePuzzle: Puzzle = {
       ...puzzle,
-      posts: puzzle.posts.map((p) => ({ ...p, isCorrectGroup: 0 })),
-      groups: puzzle.groups.map((g) => ({
-        ...g,
-        postIds: [], // Hide post IDs until reveal
-        subreddit: 'r/????', // Hide subreddit
-        theme: '???', // Hide theme
-      })),
-      crossPollination: undefined,
+      posts: safePosts,
+      connection: safeConnection,
+      subredditQuestions: safeQuestions,
     };
 
     return c.json<GetPuzzleResponse>({
@@ -85,10 +98,10 @@ gameApi.get('/puzzle', async (c) => {
 });
 
 /**
- * POST /api/game/submit
- * Submit player's grouping and get score
+ * POST /api/game/stage1
+ * Submit Stage 1 answer (selected 3 post IDs)
  */
-gameApi.post('/submit', async (c) => {
+gameApi.post('/stage1', async (c) => {
   const { postId, userId } = context;
 
   if (!postId || !userId) {
@@ -99,41 +112,113 @@ gameApi.post('/submit', async (c) => {
   }
 
   try {
-    const body = await c.req.json<SubmitGroupsRequest>();
-    const { puzzleId, playerGroups } = body;
+    const body = await c.req.json<{ puzzleId: string; selectedPostIds: string[] }>();
+    const { puzzleId, selectedPostIds } = body;
 
-    if (!puzzleId || !playerGroups) {
+    if (!puzzleId || !selectedPostIds || selectedPostIds.length !== 3) {
+      return c.json<ErrorResponse>(
+        { status: 'error', message: 'Must select exactly 3 posts' },
+        400
+      );
+    }
+
+    const result = await submitStage1(userId, puzzleId, selectedPostIds);
+
+    return c.json({
+      success: result.success,
+      correct: result.correct,
+      attempts: result.attempts,
+      session: result.session,
+    });
+  } catch (error) {
+    console.error('Stage 1 submit error:', error);
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'Failed to submit Stage 1' },
+      500
+    );
+  }
+});
+
+/**
+ * POST /api/game/stage2
+ * Submit Stage 2 answer (subreddit guess for a post)
+ */
+gameApi.post('/stage2', async (c) => {
+  const { postId: ctxPostId, userId } = context;
+
+  if (!ctxPostId || !userId) {
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'Authentication required' },
+      401
+    );
+  }
+
+  try {
+    const body = await c.req.json<{ puzzleId: string; postId: string; selectedSubreddit: string }>();
+    const { puzzleId, postId, selectedSubreddit } = body;
+
+    if (!puzzleId || !postId || !selectedSubreddit) {
       return c.json<ErrorResponse>(
         { status: 'error', message: 'Invalid request' },
         400
       );
     }
 
-    // Validate: each post assigned to exactly one group
-    const allPostIds = playerGroups.flatMap((g) => g.postIds);
-    const uniquePostIds = new Set(allPostIds);
-    if (allPostIds.length !== uniquePostIds.size) {
+    const result = await submitStage2(userId, puzzleId, postId, selectedSubreddit);
+
+    return c.json({
+      correct: result.correct,
+      answer: result.answer,
+      nextQuestion: result.nextQuestion,
+      session: result.session,
+    });
+  } catch (error) {
+    console.error('Stage 2 submit error:', error);
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'Failed to submit Stage 2' },
+      500
+    );
+  }
+});
+
+/**
+ * POST /api/game/finalize
+ * Calculate final score after Stage 2 completion
+ */
+gameApi.post('/finalize', async (c) => {
+  const { userId } = context;
+
+  if (!userId) {
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'Authentication required' },
+      401
+    );
+  }
+
+  try {
+    const body = await c.req.json<{ puzzleId: string }>();
+    const { puzzleId } = body;
+
+    if (!puzzleId) {
       return c.json<ErrorResponse>(
-        { status: 'error', message: 'Each post can only be in one group' },
+        { status: 'error', message: 'puzzleId required' },
         400
       );
     }
 
-    const score = await submitAnswer(userId, puzzleId, playerGroups);
-    const fullPuzzle = await getPuzzle(puzzleId);
-
-    // Get updated session
+    const score = await calculateScore(userId, puzzleId);
+    const puzzle = await getPuzzle(puzzleId);
     const { session } = await getSession(userId, puzzleId);
 
-    return c.json<SubmitGroupsResponse>({
+    return c.json({
       score,
-      puzzle: fullPuzzle!,
+      puzzle: puzzle!,
       session: session!,
     });
   } catch (error) {
-    console.error('Submit error:', error);
+    console.error('Finalize error:', error);
     return c.json<ErrorResponse>(
-      { status: 'error', message: 'Failed to submit answer' },
+      { status: 'error', message: 'Failed to finalize' },
       500
     );
   }
@@ -156,12 +241,11 @@ gameApi.get('/streak', async (c) => {
   try {
     const streak = await getStreak(userId);
 
-    // Get flair tier
     const tiers = [
-      { min: 30, tier: 'Converger', label: '✨ Converger' },
-      { min: 14, tier: 'Cartographer', label: '🗺️ Cartographer' },
-      { min: 7, tier: 'Connector', label: '🔗 Connector' },
-      { min: 3, tier: 'Seeker', label: '🔍 Seeker' },
+      { min: 60, tier: 'Converger', label: '✨ Converger' },
+      { min: 30, tier: 'Community Explorer', label: '🗺️ Community Explorer' },
+      { min: 15, tier: 'Pattern Seeker', label: '🔍 Pattern Seeker' },
+      { min: 5, tier: 'Connector', label: '🔗 Connector' },
       { min: 0, tier: 'Novice', label: '🔰 Novice' },
     ] as const;
 
@@ -170,7 +254,7 @@ gameApi.get('/streak', async (c) => {
     return c.json<GetStreakResponse>({
       streak,
       flairTier: flair.tier,
-      totalPlayed: 0, // Could track separately
+      totalPlayed: 0,
     });
   } catch (error) {
     console.error('Streak error:', error);
@@ -186,8 +270,6 @@ gameApi.get('/streak', async (c) => {
  */
 gameApi.post('/seed', async (c) => {
   const { userId } = context;
-  // In production, check if user is moderator of the subreddit
-  // For now, allow any authenticated user to seed
   if (!userId) {
     return c.json<ErrorResponse>(
       { status: 'error', message: 'Authentication required' },

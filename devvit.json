@@ -1,8 +1,6 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "converge-io",
-  "display_name": "Converge",
-  "description": "Daily puzzle: group posts, find the hidden theme and subreddits.",
   "post": {
     "dir": "dist/client",
     "entrypoints": {
@@ -46,5 +44,8 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build"
+  },
+  "dev": {
+    "subreddit": "converge_io_dev"
   }
 }
