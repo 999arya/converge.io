@@ -49,6 +49,8 @@ src/
 
 Puzzle data lives in `src/server/core/puzzleStore.ts`. Puzzles are seeded into KV automatically on first access and on app install, so no manual seed command is needed.
 
+During seeding, each hand-curated puzzle slot is replaced with a real Reddit post found via the Reddit API. Only safe posts with Reddit-hosted thumbnails are used, so cards show actual Reddit media. This requires the `reddit` permission in `devvit.json`.
+
 ## API Endpoints
 
 - `GET /api/game/puzzle` - Load the public puzzle and session.

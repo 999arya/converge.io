@@ -3,8 +3,9 @@
  * Puzzles are seeded automatically on first access.
  */
 
-import { redis } from '@devvit/web/server';
+import { reddit, redis, type Post } from '@devvit/web/server';
 import {
+  formatSubreddit,
   getFlairTier,
   getTodayPuzzleId,
 } from '../../shared/gameTypes';
@@ -14,6 +15,7 @@ import type {
   GameSession,
   GameState,
   Puzzle,
+  PuzzlePost,
   Stage2Answer,
 } from '../../shared/gameTypes';
 
@@ -186,17 +188,231 @@ const DEFAULT_PUZZLES: Puzzle[] = [
   },
 ];
 
+/**
+ * Search terms used to replace each hand-written seed with a real Reddit post.
+ * The subreddit comes from the seed post itself.
+ */
+const POST_SEARCH_QUERIES: Record<string, Record<string, string>> = {
+  '2026-11-24': {
+    p1: 'sourdough starter',
+    p2: 'sourdough crumb shot',
+    p3: 'bread dutch oven loaf',
+    p4: '3d print benchy',
+    p5: 'sourdough starter smell',
+  },
+  '2026-11-25': {
+    p1: 'waterstone sharpening',
+    p2: 'chisel mirror polish',
+    p3: 'mechanical pencil lead',
+    p4: 'rotring 600 pen',
+    p5: 'watchmaking hairspring',
+  },
+  '2026-11-26': {
+    p1: 'abandoned theater',
+    p2: 'factory nature reclaiming',
+    p3: 'moss sidewalk',
+    p4: 'fern brick wall identification',
+    p5: 'lichen gravestone',
+  },
+  '2026-11-27': {
+    p1: 'hand cut dovetails',
+    p2: 'hand forged knife',
+    p3: 'fountain pen nib smoothing',
+    p4: 'leather saddle stitching',
+    p5: 'mechanical keyboard switch lubing',
+  },
+  '2026-11-28': {
+    p1: 'snowflake microscope',
+    p2: 'butterfly wing scales microscope',
+    p3: 'pcb traces',
+    p4: 'salt crystal formation',
+    p5: 'cpu die shot',
+  },
+  '2026-11-29': {
+    p1: 'astrophotography milky way',
+    p2: 'light painting photography',
+    p3: 'flashlight headlamp comparison',
+    p4: 'bioluminescent waves',
+    p5: 'firefly synchronization',
+  },
+  '2026-11-30': {
+    p1: 'cast iron waffle iron restoration',
+    p2: 'vintage tube amp restoration',
+    p3: 'book binding restoration',
+    p4: 'mechanical watch restoration',
+    p5: 'sewing machine restoration',
+  },
+};
+
+type RealPostMatch = {
+  post: Post;
+  thumbnailUrl: string;
+};
+
+function stripSubredditPrefix(value: string): string {
+  return value.startsWith('r/') ? value.slice(2) : value;
+}
+
+function isRedditHostedUrl(value: string): boolean {
+  try {
+    const { hostname } = new URL(value);
+    const host = hostname.toLowerCase();
+    return (
+      host === 'reddit.com' ||
+      host.endsWith('.reddit.com') ||
+      host === 'redd.it' ||
+      host.endsWith('.redd.it') ||
+      host === 'redditmedia.com' ||
+      host.endsWith('.redditmedia.com')
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isSafePost(post: Post): boolean {
+  return (
+    !post.nsfw &&
+    !post.removed &&
+    !post.spoiler &&
+    !post.spam &&
+    !post.quarantined &&
+    post.title.trim().length > 0 &&
+    post.permalink.length > 0
+  );
+}
+
+async function findThumbnailUrl(post: Post): Promise<string | undefined> {
+  const thumbnailUrl = post.thumbnail?.url;
+  const galleryUrl = post.gallery[0]?.url;
+  const directUrl =
+    thumbnailUrl && isRedditHostedUrl(thumbnailUrl)
+      ? thumbnailUrl
+      : galleryUrl && isRedditHostedUrl(galleryUrl)
+        ? galleryUrl
+        : undefined;
+
+  if (!directUrl) return undefined;
+
+  try {
+    const enriched = await post.getEnrichedThumbnail();
+    const enrichedUrl = enriched?.image?.url;
+    if (enrichedUrl && isRedditHostedUrl(enrichedUrl)) {
+      return enrichedUrl;
+    }
+  } catch (error) {
+    console.warn('Could not load enriched Reddit thumbnail:', error);
+  }
+
+  return directUrl;
+}
+
+async function findRealPostMatch(query: string, subredditName: string): Promise<RealPostMatch | null> {
+  const searches = [
+    { query, subredditName },
+    { query },
+  ];
+
+  for (const search of searches) {
+    try {
+      const posts = await reddit
+        .searchPosts({
+          ...search,
+          sort: 'top',
+          timeframe: 'all',
+          limit: 8,
+          pageSize: 8,
+        })
+        .get(8);
+
+      for (const post of posts) {
+        if (!isSafePost(post)) continue;
+        const thumbnailUrl = await findThumbnailUrl(post);
+        if (thumbnailUrl) return { post, thumbnailUrl };
+      }
+    } catch (error) {
+      console.warn(`Reddit post search failed for "${query}":`, error);
+    }
+  }
+
+  return null;
+}
+
+function toPuzzlePost(id: string, match: RealPostMatch): PuzzlePost {
+  const body = match.post.body?.trim() ?? '';
+  const content = body.length > 900 ? `${body.slice(0, 897)}...` : body;
+
+  return {
+    id,
+    title: match.post.title,
+    author: match.post.authorName,
+    subreddit: match.post.subredditName,
+    score: match.post.score,
+    thumbnailUrl: match.thumbnailUrl,
+    permalink: match.post.permalink,
+    content,
+  };
+}
+
+function buildSubredditOptions(correctSubreddit: string, candidates: string[]): string[] {
+  const options = [correctSubreddit];
+  const fallbacks = ['r/pics', 'r/photography', 'r/DIY', 'r/science', 'r/AskReddit'];
+
+  for (const candidate of [...candidates, ...fallbacks]) {
+    const formatted = formatSubreddit(stripSubredditPrefix(candidate));
+    if (!options.includes(formatted)) options.push(formatted);
+    if (options.length === 3) break;
+  }
+
+  return options;
+}
+
+async function enrichPuzzleWithRealPosts(puzzle: Puzzle): Promise<Puzzle> {
+  const queries = POST_SEARCH_QUERIES[puzzle.id] ?? {};
+  const posts: PuzzlePost[] = [];
+
+  for (const seedPost of puzzle.posts) {
+    const query = queries[seedPost.id] ?? seedPost.title;
+    const match = await findRealPostMatch(query, stripSubredditPrefix(seedPost.subreddit));
+    posts.push(
+      match
+        ? toPuzzlePost(seedPost.id, match)
+        : { ...seedPost, thumbnailUrl: undefined }
+    );
+  }
+
+  const subredditQuestions = puzzle.subredditQuestions.map((question) => {
+    const post = posts.find((candidate) => candidate.id === question.postId);
+    const correctSubreddit = post ? formatSubreddit(post.subreddit) : question.correctSubreddit;
+    const otherSubreddits = posts
+      .filter((candidate) => candidate.id !== question.postId)
+      .map((candidate) => candidate.subreddit);
+
+    return {
+      ...question,
+      correctSubreddit,
+      options: buildSubredditOptions(correctSubreddit, [
+        ...otherSubreddits,
+        ...question.options,
+      ]),
+    };
+  });
+
+  return { ...puzzle, posts, subredditQuestions };
+}
+
 export type UserProgress = {
   streak: number;
   totalCompleted: number;
   flairTier: FlairTier;
 };
 
-const PUZZLE_VERSION = '2';
+const PUZZLE_VERSION = '3';
 
 export async function seedPuzzles(): Promise<void> {
   for (const puzzle of DEFAULT_PUZZLES) {
-    await redis.set(`${KEYS.PUZZLE}${puzzle.id}`, JSON.stringify(puzzle));
+    const enrichedPuzzle = await enrichPuzzleWithRealPosts(puzzle);
+    await redis.set(`${KEYS.PUZZLE}${puzzle.id}`, JSON.stringify(enrichedPuzzle));
   }
   await redis.set(KEYS.PUZZLE_VERSION, PUZZLE_VERSION);
 }

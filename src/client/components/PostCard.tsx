@@ -2,6 +2,7 @@
  * PostCard Component - Shows a full Reddit post preview.
  */
 
+import { useState } from 'react';
 import { navigateTo } from '@devvit/web/client';
 import { formatSubreddit } from '../../shared/gameTypes';
 import type { PublicPuzzlePost, PuzzlePost } from '../../shared/gameTypes';
@@ -23,9 +24,13 @@ export const PostCard = ({
   disabled = false,
   onSelect,
 }: PostCardProps) => {
+  const [imageFailed, setImageFailed] = useState(false);
+
   const openOriginal = () => {
     navigateTo(`https://www.reddit.com${post.permalink}`);
   };
+
+  const showThumbnail = Boolean(post.thumbnailUrl) && !imageFailed;
 
   return (
     <div
@@ -41,9 +46,15 @@ export const PostCard = ({
         onClick={onSelect}
         className={`w-full text-left ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
       >
-        {post.thumbnailUrl ? (
+        {showThumbnail ? (
           <div className="aspect-video w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
-            <img src={post.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+            <img
+              src={post.thumbnailUrl}
+              alt=""
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={() => setImageFailed(true)}
+            />
           </div>
         ) : (
           <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 via-purple-500 to-blue-500" />
