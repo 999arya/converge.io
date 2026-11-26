@@ -39,6 +39,7 @@ export type GetPuzzleResponse = {
   session?: GameSession;
   streak: number;
   totalCompleted: number;
+  lifetimeStars: number;
   flairTier: string;
 };
 
@@ -88,6 +89,7 @@ export type GetStreakResponse = {
   streak: number;
   flairTier: string;
   totalCompleted: number;
+  lifetimeStars: number;
 };
 
 export type SeedPuzzlesResponse = {

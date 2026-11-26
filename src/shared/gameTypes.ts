@@ -34,6 +34,7 @@ export type SubredditQuestion = {
   postId: string;
   correctSubreddit: string;
   options: string[];
+  description?: string;
 };
 
 export type PublicPuzzlePost = Omit<PuzzlePost, 'subreddit' | 'isConnected'> & {
@@ -100,6 +101,7 @@ export type GameScore = {
   starsEarned: number;
   streak: number;
   totalCompleted: number;
+  lifetimeStars: number;
   flairTier: string;
 };
 

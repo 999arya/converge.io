@@ -94,6 +94,7 @@ gameApi.get('/puzzle', async (c) => {
       session: session ?? undefined,
       streak: progress.streak,
       totalCompleted: progress.totalCompleted,
+      lifetimeStars: progress.lifetimeStars,
       flairTier: progress.flairTier,
     });
   } catch (error) {
@@ -251,6 +252,7 @@ gameApi.get('/streak', async (c) => {
       streak: progress.streak,
       flairTier: progress.flairTier,
       totalCompleted: progress.totalCompleted,
+      lifetimeStars: progress.lifetimeStars,
     });
   } catch (error) {
     console.error('Streak error:', error);

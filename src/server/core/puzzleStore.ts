@@ -31,6 +31,7 @@ const KEYS = {
   PLAYED: 'played:',
   LAST_COMPLETED: 'lastCompleted:',
   TOTAL_COMPLETED: 'totalCompleted:',
+  LIFETIME_STARS: 'lifetimeStars:',
 } as const;
 
 const DEFAULT_PUZZLES: Puzzle[] = [
@@ -39,173 +40,169 @@ const DEFAULT_PUZZLES: Puzzle[] = [
     date: '2026-11-24',
     posts: [
       { id: 'p1', title: 'My sourdough starter finally doubled in 4 hours!', author: 'BreadBaker99', subreddit: 'Breadit', score: 2300, content: 'Starter more than doubled after a warm kitchen day. Feeding ratio was 1:1:1. Looking for timing advice before the overnight bake.', permalink: '/r/Breadit/comments/abc123' },
-      { id: 'p2', title: 'Crumb shot: 75% hydration, cold retard 18h', author: 'CrumbMaster', subreddit: 'Breadit', score: 1800, content: 'Sharing the crumb from an overnight bake. 75% hydration, an 18-hour cold retard, and a preheated Dutch oven.', permalink: '/r/Breadit/comments/def456' },
-      { id: 'p3', title: 'First loaf in my new Challenger bread pan', author: 'NewBaker', subreddit: 'Breadit', score: 900, content: 'First loaf out of the new pan. Spring was great, but I over-scored the top and the ear did not form the way I wanted.', permalink: '/r/Breadit/comments/ghi789' },
+      { id: 'p2', title: 'Crumb shot & tangy funk: 75% hydration, cold retard 18h', author: 'FermentLover', subreddit: 'fermentation', score: 1800, content: 'Sharing the crumb from an overnight bake. 75% hydration, an 18-hour cold retard, and great sour tang from wild yeast.', permalink: '/r/fermentation/comments/def456' },
+      { id: 'p3', title: 'Kveik yeast fermentation kicked off at 90°F in 3 hours', author: 'GrainBrewer', subreddit: 'Homebrewing', score: 2100, content: 'High-temp fermentation with Voss Kveik. Pitched at 90°F and krausen is already touching the airlock.', permalink: '/r/Homebrewing/comments/ghi789' },
       { id: 'p4', title: 'My Ender 3 prints perfect benchys now', author: 'PrintMaster', subreddit: '3Dprinting', score: 3200, content: 'After a week of calibration, the benchys finally came out clean. No stringing and the corners look sharp.', permalink: '/r/3Dprinting/comments/jkl012' },
       { id: 'p5', title: 'Sourdough starter smells like acetone - normal?', author: 'WorriedBaker', subreddit: 'AskBaking', score: 500, content: 'Troubleshooting question: starter smells like acetone after a missed feeding. Is it safe to keep using it?', permalink: '/r/AskBaking/comments/pqr678' },
     ],
     connection: {
       theme: 'Fermentation & Temperature Control',
-      explanation: 'The three connected posts are all about bread fermentation: starter activity, hydration, and cold retard timing.',
+      explanation: 'The three connected posts are all about managing living cultures and fermentation temperatures: sourdough levain, cold-retard wild fermentation, and high-temp brewing yeast.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      { postId: 'p1', correctSubreddit: 'r/Breadit', options: ['r/Breadit', 'r/Sourdough', 'r/Baking'] },
-      { postId: 'p2', correctSubreddit: 'r/Breadit', options: ['r/Breadit', 'r/ArtisanBread', 'r/BreaditShowcase'] },
-      { postId: 'p3', correctSubreddit: 'r/Breadit', options: ['r/Breadit', 'r/ArtisanBread', 'r/BreaditShowcase'] },
+      { postId: 'p1', correctSubreddit: 'r/Breadit', options: ['r/Breadit', 'r/Baking', 'r/Sourdough'], description: 'The premier community for artisan breadmakers sharing levains, crusts, and flour techniques.' },
+      { postId: 'p2', correctSubreddit: 'r/fermentation', options: ['r/fermentation', 'r/canning', 'r/Kombucha'], description: 'Wild fermentation enthusiasts exploring lacto-ferments, sourdough, and kombucha cultures.' },
+      { postId: 'p3', correctSubreddit: 'r/Homebrewing', options: ['r/Homebrewing', 'r/beer', 'r/mead'], description: 'Craft brewers and zymurgists discussing yeast vitality, mash temps, and fermentation control.' },
     ],
   },
   {
     id: '2026-11-25',
     date: '2026-11-25',
     posts: [
-      { id: 'p1', title: 'My new Japanese waterstone progression', author: 'SharpEdge', subreddit: 'sharpening', score: 1200, content: 'Progression from 400 to 8000 grit. The chisel edge is now mirror polished and shaves hair cleanly.', permalink: '/r/sharpening/comments/aaa' },
-      { id: 'p2', title: 'Finally got my chisel to mirror polish', author: 'WoodworkerJoe', subreddit: 'woodworking', score: 2100, content: 'Mirror finish on a chisel after a long session on waterstones. The burr finally disappeared completely.', permalink: '/r/woodworking/comments/bbb' },
-      { id: 'p3', title: '0.3mm mechanical pencil lead comparison', author: 'LeadLover', subreddit: 'pencils', score: 800, content: 'Compared 0.3mm and 0.5mm leads for sketching. The 0.3mm holds a point longer than I expected.', permalink: '/r/pencils/comments/ccc' },
+      { id: 'p1', title: 'My new Japanese waterstone progression: 400 to 8000 grit', author: 'SharpEdge', subreddit: 'sharpening', score: 1200, content: 'Progression from 400 to 8000 grit. The chisel edge is now mirror polished and shaves hair cleanly.', permalink: '/r/sharpening/comments/aaa' },
+      { id: 'p2', title: 'Finally got my bench chisel to mirror polish', author: 'WoodworkerJoe', subreddit: 'woodworking', score: 2100, content: 'Mirror finish on a chisel after a long session on waterstones. The burr finally disappeared completely.', permalink: '/r/woodworking/comments/bbb' },
+      { id: 'p3', title: 'Testing hair-whittling edge on a 240mm gyuto', author: 'ChefBlade', subreddit: 'chefknives', score: 1750, content: 'Finished polishing the primary bevel and microbevel. Easily push-cuts through phonebook paper and whittles free-hanging hair.', permalink: '/r/chefknives/comments/ccc' },
       { id: 'p4', title: 'Rotring 600 vs 800 - the ultimate test', author: 'PenAddict', subreddit: 'pens', score: 1500, content: 'Rotring 600 versus 800 after a month of daily use. The knurling and weight feel completely different.', permalink: '/r/pens/comments/ddd' },
-      { id: 'p5', title: 'Watchmaking: installing a hairspring', author: 'Horologist', subreddit: 'watchmaking', score: 900, content: 'Installing a replacement hairspring in a vintage movement. The balance wheel is finally beating evenly.', permalink: '/r/watchmaking/comments/eee' },
+      { id: 'p5', title: 'Watchmaking: installing a hairspring balance', author: 'Horologist', subreddit: 'watchmaking', score: 900, content: 'Installing a replacement hairspring in a vintage movement. The balance wheel is finally beating evenly.', permalink: '/r/watchmaking/comments/eee' },
     ],
     connection: {
-      theme: 'Precision & Craft',
-      explanation: 'These posts share a pursuit of tiny tolerances: sharpening edges, polishing chisels, and comparing pencil leads.',
+      theme: 'The Art of the Razor Edge',
+      explanation: 'These three posts all explore extreme edge sharpening and abrasive polishing: whetstone progressions, wood chisel burr removal, and push-cutting kitchen blade bevels.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      { postId: 'p1', correctSubreddit: 'r/sharpening', options: ['r/sharpening', 'r/knives', 'r/cooking'] },
-      { postId: 'p2', correctSubreddit: 'r/woodworking', options: ['r/woodworking', 'r/carpentry', 'r/DIY'] },
-      { postId: 'p3', correctSubreddit: 'r/pencils', options: ['r/pencils', 'r/PenAddicts', 'r/Stationery'] },
+      { postId: 'p1', correctSubreddit: 'r/sharpening', options: ['r/sharpening', 'r/knives', 'r/blades'], description: 'Honing stones, strops, burrs, and apex angles for peak cutting sharpness.' },
+      { postId: 'p2', correctSubreddit: 'r/woodworking', options: ['r/woodworking', 'r/carpentry', 'r/HandToolRescue'], description: 'Wood artisans, cabinetmakers, and traditional joiners tuning hand planes and chisels.' },
+      { postId: 'p3', correctSubreddit: 'r/chefknives', options: ['r/chefknives', 'r/Chefit', 'r/Cooking'], description: 'Culinary cutlery collectors dedicated to Japanese blades, edge geometry, and steel hardness.' },
     ],
   },
   {
     id: '2026-11-26',
     date: '2026-11-26',
     posts: [
-      { id: 'p1', title: 'Abandoned theater - nature taking over', author: 'UrbexPhoto', subreddit: 'AbandonedPorn', score: 4500, content: 'Found this theater completely overtaken by vines. The stage is now a moss carpet and the balcony is unsafe.', permalink: '/r/AbandonedPorn/comments/ggg' },
-      { id: 'p2', title: 'Vines consuming an old factory', author: 'DecayHunter', subreddit: 'UrbanExploration', score: 2800, content: 'Old factory walls are disappearing under creepers. These were taken during an allowed urban exploration walk.', permalink: '/r/UrbanExploration/comments/hhh' },
-      { id: 'p3', title: 'Moss garden in a cracked sidewalk', author: 'SidewalkBotanist', subreddit: 'moss', score: 1200, content: 'Moss colonized the cracks in a city sidewalk after weeks of rain. It looks like a tiny green map.', permalink: '/r/moss/comments/iii' },
-      { id: 'p4', title: 'Ferns in brick mortar - identification?', author: 'PlantID', subreddit: 'whatsthisplant', score: 400, content: 'Can anyone identify this fern growing out of a brick wall? It appears every spring in the same spot.', permalink: '/r/whatsthisplant/comments/kkk' },
-      { id: 'p5', title: 'Lichen patterns on gravestones', author: 'LichenLover', subreddit: 'lichens', score: 300, content: 'Lichen patterns on old gravestones are surprisingly colorful. Sharing a macro shot and the general location.', permalink: '/r/lichens/comments/lll' },
+      { id: 'p1', title: 'Abandoned theater - nature taking over the stage', author: 'UrbexPhoto', subreddit: 'AbandonedPorn', score: 4500, content: 'Found this theater completely overtaken by vines. The stage is now a moss carpet and the balcony is unsafe.', permalink: '/r/AbandonedPorn/comments/ggg' },
+      { id: 'p2', title: 'Vines consuming an old 19th-century factory', author: 'DecayHunter', subreddit: 'UrbanExploration', score: 2800, content: 'Old factory walls are disappearing under creepers. These were taken during an allowed urban exploration walk.', permalink: '/r/UrbanExploration/comments/hhh' },
+      { id: 'p3', title: 'Moss carpet colonized a cracked city sidewalk', author: 'SidewalkBotanist', subreddit: 'moss', score: 1200, content: 'Moss colonized the cracks in a city sidewalk after weeks of rain. It looks like a tiny green map.', permalink: '/r/moss/comments/iii' },
+      { id: 'p4', title: 'Ferns in brick mortar - identification help?', author: 'PlantID', subreddit: 'whatsthisplant', score: 400, content: 'Can anyone identify this fern growing out of a brick wall? It appears every spring in the same spot.', permalink: '/r/whatsthisplant/comments/kkk' },
+      { id: 'p5', title: 'Lichen patterns on historic gravestones', author: 'LichenLover', subreddit: 'lichens', score: 300, content: 'Lichen patterns on old gravestones are surprisingly colorful. Sharing a macro shot and the general location.', permalink: '/r/lichens/comments/lll' },
     ],
     connection: {
       theme: 'Urban Decay & Nature Reclaiming',
-      explanation: 'Human-built places are slowly being reclaimed: a theater, a factory, and a cracked sidewalk.',
+      explanation: 'Human-built places are slowly reclaimed by wild vegetation: an abandoned theater auditorium, a derelict industrial factory, and cracked urban pavement.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      { postId: 'p1', correctSubreddit: 'r/AbandonedPorn', options: ['r/AbandonedPorn', 'r/UrbanExploration', 'r/Decay'] },
-      { postId: 'p2', correctSubreddit: 'r/UrbanExploration', options: ['r/UrbanExploration', 'r/AbandonedPorn', 'r/RoofTopping'] },
-      { postId: 'p3', correctSubreddit: 'r/moss', options: ['r/moss', 'r/NatureReclaims', 'r/botany'] },
+      { postId: 'p1', correctSubreddit: 'r/AbandonedPorn', options: ['r/AbandonedPorn', 'r/Decay', 'r/architecture'], description: 'Hauntingly beautiful photography of magnificent abandoned and forgotten architectural spaces.' },
+      { postId: 'p2', correctSubreddit: 'r/UrbanExploration', options: ['r/UrbanExploration', 'r/RoofTopping', 'r/IndustrialArchaeology'], description: 'Adventurers and documentarians exploring decommissioned factories and historic ruins.' },
+      { postId: 'p3', correctSubreddit: 'r/moss', options: ['r/moss', 'r/botany', 'r/NatureReclaims'], description: 'Admirers of bryophytes celebrating miniature emerald forests on stone and soil.' },
     ],
   },
   {
     id: '2026-11-27',
     date: '2026-11-27',
     posts: [
-      { id: 'p1', title: 'Hand-cut dovetails - 3rd attempt', author: 'JoineryJourney', subreddit: 'woodworking', score: 3200, content: 'Third attempt at hand-cut dovetails. The pins are tighter, but the shoulders still show small gaps.', permalink: '/r/woodworking/comments/mmm' },
-      { id: 'p2', title: 'My first hand-forged knife', author: 'SmithyStart', subreddit: 'Blacksmith', score: 2800, content: 'First blade forged from scratch. Lots of filing and sanding, but the tang and edge finally came together.', permalink: '/r/Blacksmith/comments/nnn' },
-      { id: 'p3', title: 'Fountain pen nib smoothing results', author: 'NibMeister', subreddit: 'fountainpens', score: 1800, content: 'Smoothed a stubborn nib with mylar and brass sheets. It now writes wet without catching on the paper.', permalink: '/r/fountainpens/comments/ooo' },
-      { id: 'p4', title: 'Leather wallet - saddle stitching', author: 'LeatherCrafter', subreddit: 'Leathercraft', score: 1500, content: 'Saddle-stitched a leather wallet with waxed thread. Learning to keep the stitch tension even.', permalink: '/r/Leathercraft/comments/ppp' },
-      { id: 'p5', title: 'Mechanical keyboard switch lubing guide', author: 'SwitchScientist', subreddit: 'MechanicalKeyboards', score: 4200, content: 'Switch lubing guide with before-and-after video. Linear switches feel completely different afterward.', permalink: '/r/MechanicalKeyboards/comments/qqq' },
+      { id: 'p1', title: 'Hand-cut through dovetails - 3rd attempt with gent saw', author: 'JoineryJourney', subreddit: 'woodworking', score: 3200, content: 'Third attempt at hand-cut dovetails. The pins are tighter, but the shoulders still show small gaps.', permalink: '/r/woodworking/comments/mmm' },
+      { id: 'p2', title: 'My first hand-forged knife shaped on the anvil', author: 'SmithyStart', subreddit: 'Blacksmith', score: 2800, content: 'First blade forged from scratch. Lots of filing and sanding, but the tang and edge finally came together.', permalink: '/r/Blacksmith/comments/nnn' },
+      { id: 'p3', title: 'Fountain pen nib smoothing and brass flossing results', author: 'NibMeister', subreddit: 'fountainpens', score: 1800, content: 'Smoothed a stubborn nib with mylar and brass sheets. It now writes wet without catching on the paper.', permalink: '/r/fountainpens/comments/ooo' },
+      { id: 'p4', title: 'Leather wallet - saddle stitching with waxed thread', author: 'LeatherCrafter', subreddit: 'Leathercraft', score: 1500, content: 'Saddle-stitched a leather wallet with waxed thread. Learning to keep the stitch tension even.', permalink: '/r/Leathercraft/comments/ppp' },
+      { id: 'p5', title: 'Mechanical keyboard switch lubing & spring swapping', author: 'SwitchScientist', subreddit: 'MechanicalKeyboards', score: 4200, content: 'Switch lubing guide with before-and-after video. Linear switches feel completely different afterward.', permalink: '/r/MechanicalKeyboards/comments/qqq' },
     ],
     connection: {
-      theme: 'Traditional Hand Craft',
-      explanation: 'Woodworking, blacksmithing, and fountain pen tuning all rely on patient hand-finished craft.',
+      theme: 'Patient Hand Craftsmanship',
+      explanation: 'Traditional manual shaping with specialized hand tools: sawing dovetail pins in timber, forging red-hot iron on an anvil, and microscopic tuning of gold pen nibs.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      { postId: 'p1', correctSubreddit: 'r/woodworking', options: ['r/woodworking', 'r/carpentry', 'r/Joinery'] },
-      { postId: 'p2', correctSubreddit: 'r/Blacksmith', options: ['r/Blacksmith', 'r/Bladesmith', 'r/metalworking'] },
-      { postId: 'p3', correctSubreddit: 'r/fountainpens', options: ['r/fountainpens', 'r/PenAddicts', 'r/Stationery'] },
+      { postId: 'p1', correctSubreddit: 'r/woodworking', options: ['r/woodworking', 'r/carpentry', 'r/Joinery'], description: 'Fine woodworkers creating furniture, hand-cut dovetails, and heirloom pieces.' },
+      { postId: 'p2', correctSubreddit: 'r/Blacksmith', options: ['r/Blacksmith', 'r/Bladesmith', 'r/metalworking'], description: 'Bladesmiths and blacksmiths shaping glowing steel with hammer and anvil.' },
+      { postId: 'p3', correctSubreddit: 'r/fountainpens', options: ['r/fountainpens', 'r/PenAddicts', 'r/Calligraphy'], description: 'Lovers of analog ink, nib grinds, and vintage writing instruments.' },
     ],
   },
   {
     id: '2026-11-28',
     date: '2026-11-28',
     posts: [
-      { id: 'p1', title: 'Snowflake under microscope - stellar dendrite', author: 'SnowCrystals', subreddit: 'microscopy', score: 5200, content: 'Stellar dendrite snowflake captured under a microscope before it melted. The branching is almost perfect.', permalink: '/r/microscopy/comments/sss' },
-      { id: 'p2', title: 'Butterfly wing scales at 500x', author: 'WingWatcher', subreddit: 'microscopy', score: 3100, content: 'Butterfly wing scales at 500x. The ridges create the color even though the scales themselves are clear.', permalink: '/r/microscopy/comments/ttt' },
-      { id: 'p3', title: 'PCB traces - 0.1mm spacing', author: 'HardwareHacker', subreddit: 'PrintedCircuitBoard', score: 1800, content: 'PCB traces spaced at 0.1mm. Routing is tight but the manufacturer says it is within spec.', permalink: '/r/PrintedCircuitBoard/comments/uuu' },
-      { id: 'p4', title: 'Salt crystal formation - time lapse', author: 'CrystalGrower', subreddit: 'crystals', score: 2200, content: 'Time lapse of salt crystals forming as water evaporates. The geometry changes every frame.', permalink: '/r/crystals/comments/www' },
-      { id: 'p5', title: 'CPU die shot - Ryzen 7000', author: 'SiliconSleuth', subreddit: 'hardware', score: 4500, content: 'Die shot with the heat spreader removed. The chiplets and IO die are clearly visible.', permalink: '/r/hardware/comments/vvv' },
+      { id: 'p1', title: 'Snowflake under microscope - stellar dendrite at 40x', author: 'SnowCrystals', subreddit: 'microscopy', score: 5200, content: 'Stellar dendrite snowflake captured under a microscope before it melted. The branching is almost perfect.', permalink: '/r/microscopy/comments/sss' },
+      { id: 'p2', title: 'Butterfly iridescent wing scales at 500x magnification', author: 'WingWatcher', subreddit: 'Entomology', score: 3100, content: 'Butterfly wing scales at 500x. The ridges create the color even though the scales themselves are clear.', permalink: '/r/Entomology/comments/ttt' },
+      { id: 'p3', title: 'High-density PCB traces - 0.1mm micro-spacing', author: 'HardwareHacker', subreddit: 'PrintedCircuitBoard', score: 1800, content: 'PCB traces spaced at 0.1mm. Routing is tight but the manufacturer says it is within spec.', permalink: '/r/PrintedCircuitBoard/comments/uuu' },
+      { id: 'p4', title: 'Salt crystal formation time-lapse', author: 'CrystalGrower', subreddit: 'crystals', score: 2200, content: 'Time lapse of salt crystals forming as water evaporates. The geometry changes every frame.', permalink: '/r/crystals/comments/www' },
+      { id: 'p5', title: 'CPU die shot - Ryzen 7000 delidded package', author: 'SiliconSleuth', subreddit: 'hardware', score: 4500, content: 'Die shot with the heat spreader removed. The chiplets and IO die are clearly visible.', permalink: '/r/hardware/comments/vvv' },
     ],
     connection: {
-      theme: 'Micro Worlds',
-      explanation: 'Each connected post reveals intricate structure at microscopic scale, whether natural or engineered.',
+      theme: 'Intricate Microscopic Geometries',
+      explanation: 'Revealing the tiny ordered structures invisible to the naked eye: branching snowflake crystals, photonic butterfly wing scales, and sub-millimeter copper circuit traces.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      { postId: 'p1', correctSubreddit: 'r/microscopy', options: ['r/microscopy', 'r/MicroPorn', 'r/MacroPhotography'] },
-      { postId: 'p2', correctSubreddit: 'r/microscopy', options: ['r/microscopy', 'r/Entomology', 'r/BiologyPorn'] },
-      { postId: 'p3', correctSubreddit: 'r/PrintedCircuitBoard', options: ['r/PrintedCircuitBoard', 'r/electronics', 'r/hardware'] },
+      { postId: 'p1', correctSubreddit: 'r/microscopy', options: ['r/microscopy', 'r/MicroPorn', 'r/MacroPhotography'], description: 'Exploring the microscopic universe through light and electron lenses.' },
+      { postId: 'p2', correctSubreddit: 'r/Entomology', options: ['r/Entomology', 'r/BiologyPorn', 'r/insects'], description: 'Scientists and insect enthusiasts studying micro-structures of arthropods.' },
+      { postId: 'p3', correctSubreddit: 'r/PrintedCircuitBoard', options: ['r/PrintedCircuitBoard', 'r/electronics', 'r/hardware'], description: 'Electrical engineers routing traces and micro-vias on dense circuit boards.' },
     ],
   },
   {
     id: '2026-11-29',
     date: '2026-11-29',
     posts: [
-      { id: 'p1', title: 'Milky Way over abandoned gas station', author: 'AstroNomad', subreddit: 'astrophotography', score: 6200, content: 'Milky Way over an abandoned gas station on a moonless night. 20-second exposure at f/2.8.', permalink: '/r/astrophotography/comments/yyy' },
-      { id: 'p2', title: 'Light painting - orbital tool', author: 'LightPainter', subreddit: 'lightpainting', score: 2800, content: 'Orbital light painting trial. Spinning a glowing tool while walking around the camera.', permalink: '/r/lightpainting/comments/zzz' },
-      { id: 'p3', title: 'Headlamp beam comparison - 2024 models', author: 'GearTester', subreddit: 'flashlight', score: 3400, content: 'Headlamp beam comparison across four models. Flood versus throw matters more than raw lumens.', permalink: '/r/flashlight/comments/aaaa' },
-      { id: 'p4', title: 'Bioluminescent waves at midnight', author: 'OceanGlow', subreddit: 'natureismetal', score: 8500, content: 'Bioluminescent waves lit up the shoreline last night. The blue glow only shows in long exposures.', permalink: '/r/natureismetal/comments/cccc' },
-      { id: 'p5', title: 'Firefly synchronization in Great Smokies', author: 'BugWatcher', subreddit: 'Entomology', score: 2100, content: 'Fireflies flashing in sync in the Smokies. Hundreds of lights pulsing together along the trail.', permalink: '/r/Entomology/comments/dddd' },
+      { id: 'p1', title: 'Milky Way core over abandoned desert gas station', author: 'AstroNomad', subreddit: 'astrophotography', score: 6200, content: 'Milky Way over an abandoned gas station on a moonless night. 20-second exposure at f/2.8.', permalink: '/r/astrophotography/comments/yyy' },
+      { id: 'p2', title: 'Light painting - orbital tool stencil in the dark', author: 'LightPainter', subreddit: 'lightpainting', score: 2800, content: 'Orbital light painting trial. Spinning a glowing tool while walking around the camera.', permalink: '/r/lightpainting/comments/zzz' },
+      { id: 'p3', title: 'High-power thrower beam cutting through mountain fog', author: 'GearTester', subreddit: 'flashlight', score: 3400, content: 'Headlamp and thrower beam comparison across four models. Flood versus throw matters more than raw lumens.', permalink: '/r/flashlight/comments/aaaa' },
+      { id: 'p4', title: 'Bioluminescent waves glowing blue at midnight', author: 'OceanGlow', subreddit: 'natureismetal', score: 8500, content: 'Bioluminescent waves lit up the shoreline last night. The blue glow only shows in long exposures.', permalink: '/r/natureismetal/comments/cccc' },
+      { id: 'p5', title: 'City traffic light streak long exposure', author: 'CityShooter', subreddit: 'photography', score: 2100, content: 'Long exposure of rush hour traffic streaks from the pedestrian overpass.', permalink: '/r/photography/comments/dddd' },
     ],
     connection: {
-      theme: 'Night & Light',
-      explanation: 'Photographing stars, painting with light, and comparing headlamps all center on working with light after dark.',
+      theme: 'Illuminating the Night',
+      explanation: 'Mastering and capturing intentional light after dark: deep-space long exposures of the Milky Way, choreographed light-painting stencils, and ultra-high-candela flashlight beams.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      { postId: 'p1', correctSubreddit: 'r/astrophotography', options: ['r/astrophotography', 'r/EarthPorn', 'r/SpacePorn'] },
-      { postId: 'p2', correctSubreddit: 'r/lightpainting', options: ['r/lightpainting', 'r/photography', 'r/ExposurePorn'] },
-      { postId: 'p3', correctSubreddit: 'r/flashlight', options: ['r/flashlight', 'r/EDC', 'r/CampingGear'] },
+      { postId: 'p1', correctSubreddit: 'r/astrophotography', options: ['r/astrophotography', 'r/EarthPorn', 'r/SpacePorn'], description: 'Photographers capturing distant nebulae, galaxies, and celestial star fields.' },
+      { postId: 'p2', correctSubreddit: 'r/lightpainting', options: ['r/lightpainting', 'r/ExposurePorn', 'r/nightphotography'], description: 'Long-exposure artists painting dazzling trails of light against night skies.' },
+      { postId: 'p3', correctSubreddit: 'r/flashlight', options: ['r/flashlight', 'r/EDC', 'r/CampingGear'], description: 'Illumination enthusiasts testing emitters, color temperature, and beam throw.' },
     ],
   },
   {
     id: '2026-11-30',
     date: '2026-11-30',
     posts: [
-      { id: 'p1', title: '1920s waffle iron restoration', author: 'CastIronChef', subreddit: 'castiron', score: 3800, content: 'Restored a 1920s waffle iron. Rebuilt the cord, stripped the rust, and reseasoned the plates.', permalink: '/r/castiron/comments/eeee' },
-      { id: 'p2', title: 'Vintage tube amp brought back to life', author: 'AudiophileFix', subreddit: 'vintageaudio', score: 2200, content: 'Tube amp is alive again after replacing capacitors and cleaning the volume pots.', permalink: '/r/vintageaudio/comments/ffff' },
-      { id: 'p3', title: 'Rebinding a 1850s family bible', author: 'BookBinder', subreddit: 'bookbinding', score: 1500, content: 'Rebound an 1850s family bible with new linen hinges. The original boards survived nicely.', permalink: '/r/bookbinding/comments/gggg' },
-      { id: 'p4', title: 'Restored 1960s mechanical watch', author: 'WatchRestorer', subreddit: 'WatchRepair', score: 1800, content: 'Mechanical watch cleaned and regulated. It is running at about +3 seconds per day now.', permalink: '/r/WatchRepair/comments/hhhh' },
-      { id: 'p5', title: 'Grandmother’s sewing machine restored', author: 'SewingHeirloom', subreddit: 'sewing', score: 1200, content: 'Grandmother’s sewing machine cleaned, oiled, and back to stitching straight lines.', permalink: '/r/sewing/comments/jjjj' },
+      { id: 'p1', title: '1920s Griswold waffle iron restoration & seasoning', author: 'CastIronChef', subreddit: 'castiron', score: 3800, content: 'Restored a 1920s waffle iron. Rebuilt the cord, stripped the rust, and reseasoned the plates.', permalink: '/r/castiron/comments/eeee' },
+      { id: 'p2', title: 'Vintage tube stereo receiver brought back to life', author: 'AudiophileFix', subreddit: 'vintageaudio', score: 2200, content: 'Tube amp is alive again after replacing capacitors and cleaning the volume pots.', permalink: '/r/vintageaudio/comments/ffff' },
+      { id: 'p3', title: 'Rebinding an 1850s family bible with archival linen', author: 'BookBinder', subreddit: 'bookbinding', score: 1500, content: 'Rebound an 1850s family bible with new linen hinges. The original boards survived nicely.', permalink: '/r/bookbinding/comments/gggg' },
+      { id: 'p4', title: 'Restored 1960s mechanical pocket watch', author: 'WatchRestorer', subreddit: 'WatchRepair', score: 1800, content: 'Mechanical watch cleaned and regulated. It is running at about +3 seconds per day now.', permalink: '/r/WatchRepair/comments/hhhh' },
+      { id: 'p5', title: 'Grandmother’s cast iron Singer sewing machine', author: 'SewingHeirloom', subreddit: 'sewing', score: 1200, content: 'Grandmother’s sewing machine cleaned, oiled, and back to stitching straight lines.', permalink: '/r/sewing/comments/jjjj' },
     ],
     connection: {
-      theme: 'Restored & Revived',
-      explanation: 'These posts share the satisfaction of bringing old objects back to life through careful restoration.',
+      theme: 'Bringing Antiques Back to Life',
+      explanation: 'Careful historical restoration of vintage century-old mechanisms: cast iron waffle irons, glowing vacuum-tube receivers, and 1800s hand-bound leather books.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
     subredditQuestions: [
-      { postId: 'p1', correctSubreddit: 'r/castiron', options: ['r/castiron', 'r/Restoration', 'r/Antiques'] },
-      { postId: 'p2', correctSubreddit: 'r/vintageaudio', options: ['r/vintageaudio', 'r/audiophile', 'r/DIYAudio'] },
-      { postId: 'p3', correctSubreddit: 'r/bookbinding', options: ['r/bookbinding', 'r/Restoration', 'r/Calligraphy'] },
+      { postId: 'p1', correctSubreddit: 'r/castiron', options: ['r/castiron', 'r/Restoration', 'r/Antiques'], description: 'Cast iron cookware collectors stripping rust and seasoning vintage pans.' },
+      { postId: 'p2', correctSubreddit: 'r/vintageaudio', options: ['r/vintageaudio', 'r/audiophile', 'r/DIYAudio'], description: 'Hi-fi enthusiasts restoring vintage tube amplifiers and turntables.' },
+      { postId: 'p3', correctSubreddit: 'r/bookbinding', options: ['r/bookbinding', 'r/Restoration', 'r/Calligraphy'], description: 'Archivists and binders restoring antique leather volumes and folios.' },
     ],
   },
 ];
 
-/**
- * Search terms used to replace each hand-written seed with a real Reddit post.
- * The subreddit comes from the seed post itself.
- */
 const POST_SEARCH_QUERIES: Record<string, Record<string, string>> = {
   '2026-11-24': {
     p1: 'sourdough starter',
-    p2: 'sourdough crumb shot',
-    p3: 'bread dutch oven loaf',
+    p2: 'lacto fermentation',
+    p3: 'homebrew fermentation yeast',
     p4: '3d print benchy',
-    p5: 'sourdough starter smell',
+    p5: 'baking chocolate cookies',
   },
   '2026-11-25': {
     p1: 'waterstone sharpening',
     p2: 'chisel mirror polish',
-    p3: 'mechanical pencil lead',
+    p3: 'gyuto knife sharpening',
     p4: 'rotring 600 pen',
     p5: 'watchmaking hairspring',
   },
@@ -235,7 +232,7 @@ const POST_SEARCH_QUERIES: Record<string, Record<string, string>> = {
     p2: 'light painting photography',
     p3: 'flashlight headlamp comparison',
     p4: 'bioluminescent waves',
-    p5: 'firefly synchronization',
+    p5: 'traffic long exposure',
   },
   '2026-11-30': {
     p1: 'cast iron waffle iron restoration',
@@ -406,10 +403,11 @@ async function enrichPuzzleWithRealPosts(puzzle: Puzzle): Promise<Puzzle> {
 export type UserProgress = {
   streak: number;
   totalCompleted: number;
+  lifetimeStars: number;
   flairTier: FlairTier;
 };
 
-const PUZZLE_VERSION = '4';
+const PUZZLE_VERSION = '6';
 const THUMBNAIL_RETRY_MS = 10 * 60 * 1000;
 
 export async function seedPuzzles(): Promise<void> {
@@ -733,12 +731,16 @@ export async function submitStage2(
   };
 }
 
-async function getProgress(userId: string): Promise<{ streak: number; totalCompleted: number }> {
+async function getProgress(
+  userId: string
+): Promise<{ streak: number; totalCompleted: number; lifetimeStars: number }> {
   const streakData = await redis.get(`${KEYS.STREAK}${userId}`);
   const totalData = await redis.get(`${KEYS.TOTAL_COMPLETED}${userId}`);
+  const starsData = await redis.get(`${KEYS.LIFETIME_STARS}${userId}`);
   return {
     streak: streakData ? parseInt(streakData, 10) : 0,
     totalCompleted: totalData ? parseInt(totalData, 10) : 0,
+    lifetimeStars: starsData ? parseInt(starsData, 10) : 0,
   };
 }
 
@@ -759,7 +761,10 @@ function isConsecutiveDate(previous: string, current: string): boolean {
   return currentDate.getTime() - previousDate.getTime() === 86_400_000;
 }
 
-async function completeDailyAttempt(userId: string): Promise<{ streak: number; totalCompleted: number }> {
+async function completeDailyAttempt(
+  userId: string,
+  starsEarned: number
+): Promise<{ streak: number; totalCompleted: number; lifetimeStars: number }> {
   const today = getTodayPuzzleId();
   const playedKey = `${KEYS.PLAYED}${userId}:${today}`;
   const alreadyPlayed = await redis.get(playedKey);
@@ -774,12 +779,14 @@ async function completeDailyAttempt(userId: string): Promise<{ streak: number; t
       ? progress.streak + 1
       : 1;
   const totalCompleted = progress.totalCompleted + 1;
+  const lifetimeStars = progress.lifetimeStars + starsEarned;
 
   await redis.set(`${KEYS.STREAK}${userId}`, streak.toString());
   await redis.set(`${KEYS.LAST_COMPLETED}${userId}`, today);
   await redis.set(`${KEYS.TOTAL_COMPLETED}${userId}`, totalCompleted.toString());
+  await redis.set(`${KEYS.LIFETIME_STARS}${userId}`, lifetimeStars.toString());
 
-  return { streak, totalCompleted };
+  return { streak, totalCompleted, lifetimeStars };
 }
 
 export async function calculateScore(userId: string, puzzleId: string): Promise<GameScore> {
@@ -794,6 +801,7 @@ export async function calculateScore(userId: string, puzzleId: string): Promise<
       ...session.score,
       streak: session.score.streak || progress.streak,
       totalCompleted: session.score.totalCompleted || progress.totalCompleted,
+      lifetimeStars: session.score.lifetimeStars || progress.lifetimeStars,
       flairTier: session.score.flairTier || getFlairTier(progress.totalCompleted),
     };
   }
@@ -809,17 +817,19 @@ export async function calculateScore(userId: string, puzzleId: string): Promise<
     throw new Error('Stage 2 is still in progress');
   }
 
-  const progress = await completeDailyAttempt(userId);
   const correctGuesses = session.stage1Correct
     ? session.stage2Answers.filter((answer) => answer.isCorrect).length
     : 0;
+  const starsEarned = session.stage1Correct ? correctGuesses : 0;
+  const progress = await completeDailyAttempt(userId, starsEarned);
 
   const score: GameScore = {
     connectionSolved: session.stage1Correct,
     correctSubredditGuesses: correctGuesses,
-    starsEarned: session.stage1Correct ? correctGuesses : 0,
+    starsEarned,
     streak: progress.streak,
     totalCompleted: progress.totalCompleted,
+    lifetimeStars: progress.lifetimeStars,
     flairTier: getFlairTier(progress.totalCompleted),
   };
 
