@@ -15,7 +15,9 @@ import type {
   GameScore,
   PublicGameSession,
   PublicPuzzle,
+  PublicPuzzlePost,
   Puzzle,
+  PuzzlePost,
 } from '../../shared/gameTypes';
 import { useGame } from '../hooks/useGame';
 import { PostCard } from './PostCard';
@@ -344,6 +346,48 @@ export const GameBoard = () => {
    STAGE 2: IDENTIFY SUBREDDIT BIOMES (LIGHT THEME)
    ========================================================= */
 
+/** Artifact preview with the real Reddit thumbnail to help identify the biome. */
+const StageTwoArtifact = ({
+  post,
+  index,
+}: {
+  post: PuzzlePost | PublicPuzzlePost | undefined;
+  index: number;
+}) => {
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = Boolean(post?.thumbnailUrl) && !imageFailed;
+
+  return (
+    <div className="mc-card bg-amber-50/50 p-3 sm:p-4 mb-5 border-2 border-zinc-950 flex flex-col sm:flex-row gap-3">
+      <div className="mc-slot relative h-28 w-full shrink-0 overflow-hidden bg-zinc-900 sm:w-40">
+        {showImage ? (
+          <img
+            src={post?.thumbnailUrl}
+            alt=""
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center font-pixel text-[10px] text-amber-300 uppercase">
+            No preview
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-bold text-sm sm:text-base leading-snug text-zinc-950">
+          {post?.title ?? `Artifact #${index + 1}`}
+        </h3>
+        {post?.content && (
+          <p className="mt-2 line-clamp-4 text-xs sm:text-sm leading-relaxed text-zinc-700 font-body">
+            {post.content}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 type StageTwoProps = {
   puzzle: PublicPuzzle | Puzzle;
   session: PublicGameSession;
@@ -418,17 +462,8 @@ const StageTwo = ({
                 )}
               </div>
 
-              {/* Artifact Content Card */}
-              <div className="mc-card bg-amber-50/50 p-4 mb-5 border-2 border-zinc-950">
-                <h3 className="font-bold text-sm sm:text-base text-zinc-950 leading-snug">
-                  {post?.title ?? question.postId}
-                </h3>
-                {post?.content && (
-                  <p className="mt-2 text-xs sm:text-sm text-zinc-700 font-body leading-relaxed line-clamp-4">
-                    {post.content}
-                  </p>
-                )}
-              </div>
+              {/* Artifact Content Card with Reddit thumbnail */}
+              <StageTwoArtifact post={post} index={index} />
 
               <p className="font-pixel text-[11px] sm:text-xs text-zinc-950 uppercase mb-3 text-center">
                 Which subreddit biome did this post originate from?
