@@ -62,6 +62,11 @@ export type PixelPalmBannerProps = {
   dark?: boolean | undefined;
 };
 
+export type PixelCloudProps = {
+  className?: string | undefined;
+  dark?: boolean | undefined;
+};
+
 /* =========================================================
    COLOR PALETTES
    ========================================================= */
@@ -106,6 +111,37 @@ const DARK_COLORS: TreeColors = {
   trunkLight: '#78350f',
 };
 
+type CloudTone = 'highlight' | 'top' | 'mid' | 'shadow';
+
+type CloudColors = Record<CloudTone | 'outline', string>;
+
+const CLOUD_ROWS: { y: number; x: number; width: number; tone: CloudTone }[] = [
+  { y: 4, x: 18, width: 8, tone: 'highlight' },
+  { y: 6, x: 14, width: 16, tone: 'highlight' },
+  { y: 8, x: 10, width: 24, tone: 'top' },
+  { y: 10, x: 6, width: 32, tone: 'top' },
+  { y: 12, x: 4, width: 36, tone: 'mid' },
+  { y: 14, x: 2, width: 42, tone: 'mid' },
+  { y: 16, x: 2, width: 42, tone: 'shadow' },
+  { y: 18, x: 6, width: 34, tone: 'shadow' },
+];
+
+const LIGHT_CLOUD_COLORS: CloudColors = {
+  outline: '#0f172a',
+  highlight: '#ffffff',
+  top: '#f8fafc',
+  mid: '#e0f2fe',
+  shadow: '#bae6fd',
+};
+
+const DARK_CLOUD_COLORS: CloudColors = {
+  outline: '#020617',
+  highlight: '#64748b',
+  top: '#475569',
+  mid: '#334155',
+  shadow: '#1e293b',
+};
+
 const BIRD_PALETTES: Record<PixelBirdVariant, BirdColors> = {
   seagull: {
     outline: '#090d16',
@@ -138,6 +174,67 @@ const BIRD_PALETTES: Record<PixelBirdVariant, BirdColors> = {
     eye: '#090d16',
   },
 };
+
+/* =========================================================
+   HIGH-DETAIL PIXEL CLOUD SPRITE
+   ========================================================= */
+
+type PixelCloudGlyphProps = {
+  x: number;
+  y: number;
+  scale?: number | undefined;
+  dark?: boolean | undefined;
+};
+
+/** Raw SVG cloud glyph so it can be placed inside any scenery viewBox. */
+const PixelCloudGlyph = ({ x, y, scale = 1, dark = false }: PixelCloudGlyphProps) => {
+  const colors = dark ? DARK_CLOUD_COLORS : LIGHT_CLOUD_COLORS;
+
+  return (
+    <g transform={`translate(${x} ${y}) scale(${scale})`}>
+      {/* One-pixel outline built from expanded pixel rows. */}
+      {CLOUD_ROWS.map((row) => (
+        <rect
+          key={`outline-${row.y}`}
+          x={row.x - 1}
+          y={row.y - 1}
+          width={row.width + 2}
+          height="4"
+          fill={colors.outline}
+        />
+      ))}
+      {/* Layered fills give the cloud volume and a bright top rim. */}
+      {CLOUD_ROWS.map((row) => (
+        <rect
+          key={`fill-${row.y}`}
+          x={row.x}
+          y={row.y}
+          width={row.width}
+          height="2"
+          fill={colors[row.tone]}
+        />
+      ))}
+      <rect x="20" y="5" width="6" height="2" fill={colors.highlight} />
+      <rect x="12" y="9" width="6" height="2" fill={colors.highlight} />
+      <rect x="28" y="11" width="6" height="2" fill={colors.highlight} />
+      <rect x="8" y="15" width="8" height="2" fill={colors.shadow} />
+      <rect x="30" y="17" width="8" height="2" fill={colors.shadow} />
+    </g>
+  );
+};
+
+/** Standalone drifting cloud used as a full-page background sprite. */
+export const PixelCloud = ({ className, dark = false }: PixelCloudProps) => (
+  <div className={`pixel-art pointer-events-none select-none inline-block ${className ?? ''}`}>
+    <svg
+      viewBox="0 0 48 24"
+      shapeRendering="crispEdges"
+      className="h-full w-full overflow-visible"
+    >
+      <PixelCloudGlyph x={0} y={0} dark={dark} />
+    </svg>
+  </div>
+);
 
 /* =========================================================
    FOREST TREE SPRITE (ORIGINAL COMPATIBILITY)
@@ -182,7 +279,6 @@ const PixelTreeShape = ({
 export const PixelForest = ({ className, dark = false }: PixelForestProps) => {
   const colors = dark ? DARK_COLORS : LIGHT_COLORS;
   const sky = dark ? '#071426' : '#dbeafe';
-  const cloud = dark ? '#14304d' : '#ffffff';
   const ground = dark ? '#0f3d2e' : '#86efac';
   const grass = dark ? '#064e3b' : '#22c55e';
   const flower = dark ? '#fcd34d' : '#fbbf24';
@@ -199,14 +295,8 @@ export const PixelForest = ({ className, dark = false }: PixelForestProps) => {
         className="h-full w-full"
       >
         <rect x="0" y="0" width="160" height="40" fill={sky} />
-        <g fill={cloud}>
-          <rect x="14" y="6" width="20" height="4" />
-          <rect x="18" y="4" width="12" height="4" />
-          <rect x="16" y="10" width="16" height="2" />
-          <rect x="104" y="8" width="18" height="4" />
-          <rect x="108" y="6" width="10" height="4" />
-          <rect x="106" y="12" width="14" height="2" />
-        </g>
+        <PixelCloudGlyph x={8} y={2} scale={0.78} dark={dark} />
+        <PixelCloudGlyph x={94} y={4} scale={0.66} dark={dark} />
         {TREE_PLACEMENTS.map((placement) => (
           <PixelTreeShape
             key={`${placement.x}-${placement.y}`}
@@ -443,7 +533,6 @@ export const PixelPalmBanner = ({
   dark = false,
 }: PixelPalmBannerProps) => {
   const sky = dark ? '#071426' : '#dbeafe';
-  const cloud = dark ? '#14304d' : '#ffffff';
   const ground = dark ? '#78350f' : '#fde68a';
   const grass = dark ? '#064e3b' : '#22c55e';
   const sandDark = dark ? '#451a03' : '#f59e0b';
@@ -466,16 +555,9 @@ export const PixelPalmBanner = ({
         <rect x="180" y="4" width="10" height="10" fill="#f59e0b" />
         <rect x="182" y="6" width="6" height="6" fill="#fef08a" />
 
-        {/* Floating Clouds */}
-        <g fill={cloud}>
-          <rect x="16" y="6" width="22" height="4" />
-          <rect x="20" y="4" width="14" height="4" />
-          <rect x="18" y="10" width="18" height="2" />
-
-          <rect x="110" y="8" width="24" height="4" />
-          <rect x="114" y="6" width="16" height="4" />
-          <rect x="112" y="12" width="20" height="2" />
-        </g>
+        {/* Layered Pixel Clouds */}
+        <PixelCloudGlyph x={12} y={2} scale={0.9} dark={dark} />
+        <PixelCloudGlyph x={104} y={4} scale={0.75} dark={dark} />
 
         {/* Beach / Ground Dunes */}
         <rect x="0" y="40" width="200" height="8" fill={sandDark} />
@@ -580,26 +662,24 @@ export const PixelGameBackground = ({
 
       {/* 3. Drifting Pixel Clouds in Background Sky */}
       <div
-        className="absolute top-8 left-0 opacity-70 pointer-events-none"
+        className="absolute top-8 left-0 opacity-80 pointer-events-none"
         style={{ animation: 'cloud-drift-1 95s linear infinite' }}
       >
-        <svg viewBox="0 0 56 16" shapeRendering="crispEdges" className="w-36 sm:w-48 h-10">
-          <rect x="8" y="4" width="40" height="8" fill="#ffffff" />
-          <rect x="14" y="0" width="26" height="8" fill="#ffffff" />
-          <rect x="10" y="12" width="36" height="4" fill="#f1f5f9" />
-          <rect x="6" y="6" width="44" height="6" fill="#f8fafc" />
-        </svg>
+        <PixelCloud className="w-36 sm:w-48 h-10" />
       </div>
 
       <div
-        className="absolute top-20 left-0 opacity-60 pointer-events-none"
+        className="absolute top-20 left-0 opacity-70 pointer-events-none"
         style={{ animation: 'cloud-drift-2 130s linear infinite 25s' }}
       >
-        <svg viewBox="0 0 48 14" shapeRendering="crispEdges" className="w-28 sm:w-36 h-8">
-          <rect x="6" y="4" width="36" height="6" fill="#ffffff" />
-          <rect x="12" y="1" width="22" height="6" fill="#ffffff" />
-          <rect x="8" y="10" width="32" height="3" fill="#f1f5f9" />
-        </svg>
+        <PixelCloud className="w-28 sm:w-36 h-8" />
+      </div>
+
+      <div
+        className="absolute top-14 left-0 opacity-55 pointer-events-none"
+        style={{ animation: 'cloud-drift-2 110s linear infinite 48s' }}
+      >
+        <PixelCloud className="w-24 sm:w-32 h-7" />
       </div>
 
       {/* 4. MOVING PIXELATED BIRDS (Flapping Wings + Crossing the Screen) */}
