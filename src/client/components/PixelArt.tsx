@@ -115,23 +115,32 @@ type CloudTone = 'highlight' | 'top' | 'mid' | 'shadow';
 
 type CloudColors = Record<CloudTone | 'outline', string>;
 
-const CLOUD_ROWS: { y: number; x: number; width: number; tone: CloudTone }[] = [
-  { y: 4, x: 18, width: 8, tone: 'highlight' },
-  { y: 6, x: 14, width: 16, tone: 'highlight' },
-  { y: 8, x: 10, width: 24, tone: 'top' },
-  { y: 10, x: 6, width: 32, tone: 'top' },
-  { y: 12, x: 4, width: 36, tone: 'mid' },
-  { y: 14, x: 2, width: 42, tone: 'mid' },
-  { y: 16, x: 2, width: 42, tone: 'shadow' },
-  { y: 18, x: 6, width: 34, tone: 'shadow' },
+type CloudSegment = { x: number; width: number };
+type CloudRow = { y: number; segments: CloudSegment[]; tone: CloudTone };
+
+/**
+ * Puffy cloud silhouette on a 64x28 grid. Two small top lobes merge into a
+ * wide base, which reads as a cloud instead of a flat pyramid.
+ */
+const CLOUD_ROWS: CloudRow[] = [
+  { y: 4, segments: [{ x: 26, width: 8 }, { x: 42, width: 8 }], tone: 'highlight' },
+  { y: 6, segments: [{ x: 22, width: 14 }, { x: 38, width: 14 }], tone: 'highlight' },
+  { y: 8, segments: [{ x: 18, width: 30 }], tone: 'top' },
+  { y: 10, segments: [{ x: 14, width: 36 }], tone: 'top' },
+  { y: 12, segments: [{ x: 10, width: 44 }], tone: 'top' },
+  { y: 14, segments: [{ x: 6, width: 52 }], tone: 'mid' },
+  { y: 16, segments: [{ x: 4, width: 56 }], tone: 'mid' },
+  { y: 18, segments: [{ x: 4, width: 56 }], tone: 'shadow' },
+  { y: 20, segments: [{ x: 8, width: 48 }], tone: 'shadow' },
+  { y: 22, segments: [{ x: 14, width: 36 }], tone: 'shadow' },
 ];
 
 const LIGHT_CLOUD_COLORS: CloudColors = {
-  outline: '#0f172a',
+  outline: '#475569',
   highlight: '#ffffff',
   top: '#f8fafc',
-  mid: '#e0f2fe',
-  shadow: '#bae6fd',
+  mid: '#e2e8f0',
+  shadow: '#cbd5e1',
 };
 
 const DARK_CLOUD_COLORS: CloudColors = {
@@ -192,33 +201,38 @@ const PixelCloudGlyph = ({ x, y, scale = 1, dark = false }: PixelCloudGlyphProps
 
   return (
     <g transform={`translate(${x} ${y}) scale(${scale})`}>
-      {/* One-pixel outline built from expanded pixel rows. */}
-      {CLOUD_ROWS.map((row) => (
-        <rect
-          key={`outline-${row.y}`}
-          x={row.x - 1}
-          y={row.y - 1}
-          width={row.width + 2}
-          height="4"
-          fill={colors.outline}
-        />
-      ))}
+      {/* One-pixel outline follows each puffy lobe of the silhouette. */}
+      {CLOUD_ROWS.flatMap((row) =>
+        row.segments.map((segment) => (
+          <rect
+            key={`outline-${row.y}-${segment.x}`}
+            x={segment.x - 1}
+            y={row.y - 1}
+            width={segment.width + 2}
+            height="4"
+            fill={colors.outline}
+          />
+        ))
+      )}
       {/* Layered fills give the cloud volume and a bright top rim. */}
-      {CLOUD_ROWS.map((row) => (
-        <rect
-          key={`fill-${row.y}`}
-          x={row.x}
-          y={row.y}
-          width={row.width}
-          height="2"
-          fill={colors[row.tone]}
-        />
-      ))}
-      <rect x="20" y="5" width="6" height="2" fill={colors.highlight} />
-      <rect x="12" y="9" width="6" height="2" fill={colors.highlight} />
-      <rect x="28" y="11" width="6" height="2" fill={colors.highlight} />
-      <rect x="8" y="15" width="8" height="2" fill={colors.shadow} />
-      <rect x="30" y="17" width="8" height="2" fill={colors.shadow} />
+      {CLOUD_ROWS.flatMap((row) =>
+        row.segments.map((segment) => (
+          <rect
+            key={`fill-${row.y}-${segment.x}`}
+            x={segment.x}
+            y={row.y}
+            width={segment.width}
+            height="2"
+            fill={colors[row.tone]}
+          />
+        ))
+      )}
+      {/* Pixel glints on the top lobes and soft shading along the base. */}
+      <rect x="28" y="6" width="6" height="2" fill={colors.highlight} />
+      <rect x="44" y="6" width="6" height="2" fill={colors.highlight} />
+      <rect x="20" y="10" width="8" height="2" fill={colors.highlight} />
+      <rect x="10" y="18" width="12" height="2" fill={colors.shadow} />
+      <rect x="38" y="20" width="12" height="2" fill={colors.shadow} />
     </g>
   );
 };
@@ -227,7 +241,7 @@ const PixelCloudGlyph = ({ x, y, scale = 1, dark = false }: PixelCloudGlyphProps
 export const PixelCloud = ({ className, dark = false }: PixelCloudProps) => (
   <div className={`pixel-art pointer-events-none select-none inline-block ${className ?? ''}`}>
     <svg
-      viewBox="0 0 48 24"
+      viewBox="0 0 64 28"
       shapeRendering="crispEdges"
       className="h-full w-full overflow-visible"
     >
@@ -296,8 +310,8 @@ export const PixelForest = ({ className, dark = false }: PixelForestProps) => {
         className="h-full w-full"
       >
         <rect x="0" y="0" width="160" height="40" fill={sky} />
-        <PixelCloudGlyph x={8} y={2} scale={0.78} dark={dark} />
-        <PixelCloudGlyph x={94} y={4} scale={0.66} dark={dark} />
+        <PixelCloudGlyph x={8} y={2} scale={0.62} dark={dark} />
+        <PixelCloudGlyph x={94} y={4} scale={0.52} dark={dark} />
         {TREE_PLACEMENTS.map((placement) => (
           <PixelTreeShape
             key={`${placement.x}-${placement.y}`}
@@ -558,8 +572,8 @@ export const PixelPalmBanner = ({
         <rect x="182" y="6" width="6" height="6" fill="#fef08a" />
 
         {/* Layered Pixel Clouds */}
-        <PixelCloudGlyph x={12} y={2} scale={0.9} dark={dark} />
-        <PixelCloudGlyph x={104} y={4} scale={0.75} dark={dark} />
+        <PixelCloudGlyph x={12} y={2} scale={0.72} dark={dark} />
+        <PixelCloudGlyph x={104} y={4} scale={0.6} dark={dark} />
 
         {/* Beach / Ground Dunes */}
         <rect x="0" y="40" width="200" height="8" fill={sandDark} />
