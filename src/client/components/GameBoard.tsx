@@ -20,7 +20,7 @@ import type {
   PuzzlePost,
 } from '../../shared/gameTypes';
 import { useGame } from '../hooks/useGame';
-import { PixelForest } from './PixelArt';
+import { PixelPalmBanner } from './PixelArt';
 import { PostCard } from './PostCard';
 import { sounds } from '../utils/sound';
 
@@ -32,7 +32,7 @@ function isFullPuzzle(value: PublicPuzzle | Puzzle): value is Puzzle {
 const ArcadeLoader = () => (
   <div className="arcade-loader fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#071426] text-white">
     <div className="arcade-loader-tiles" aria-hidden="true" />
-    <PixelForest className="absolute inset-x-0 bottom-0 z-0 h-24 opacity-90" dark />
+    <PixelPalmBanner className="absolute inset-x-0 bottom-0 z-0 h-24 opacity-90" dark />
     <div className="relative z-10 flex flex-col items-center px-6 text-center">
       <div className="arcade-loader-logo mb-6 flex h-24 w-24 items-center justify-center border-4 border-[#FFC247] bg-[#050505] font-pixel text-4xl font-black text-[#FFC247] shadow-[8px_8px_0_#FF4B18]">
         C
@@ -194,11 +194,11 @@ export const GameBoard = () => {
         )}
       </div>
 
-      <PixelForest className="mc-card mb-4 h-14 w-full" />
+      <PixelPalmBanner className="mc-card mb-4 h-14 w-full" />
 
       {/* Clue Scroll Drawer / Modal */}
       {hintOpen && puzzle.connection.hint && (
-        <div className="mc-card bg-amber-100 border-amber-600 p-3.5 mb-4 animate-star-pop">
+        <div className="mc-card bg-amber-100 border-amber-600 p-3.5 mb-4 animate-drawer-drop">
           <div className="flex items-center gap-2 mb-1 text-amber-900">
             <span className="text-base">📜</span>
             <span className="font-pixel text-[10px] uppercase font-bold">
@@ -256,9 +256,9 @@ export const GameBoard = () => {
 
       {/* Bottom Floating Hotbar / Inventory System (Light Theme) */}
       <aside
-          aria-label="Selection Hotbar"
-          className="fixed bottom-0 left-0 right-0 z-30 p-2.5 sm:p-3 bg-amber-50/95 backdrop-blur-md border-t-3 border-zinc-950 shadow-[0_-4px_0_#090d16]"
-        >
+        aria-label="Selection Hotbar"
+        className="fixed bottom-0 left-0 right-0 z-30 p-2.5 sm:p-3 bg-amber-50/95 backdrop-blur-md border-t-3 border-zinc-950 shadow-[0_-4px_0_#090d16] animate-hotbar-slide-up"
+      >
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
             {/* 3 Hotbar Slots */}
             <div className="flex items-center gap-2">
@@ -445,7 +445,7 @@ const StageTwo = ({
         </div>
       </div>
 
-      <PixelForest className="mc-card mb-4 h-14 w-full" />
+      <PixelPalmBanner className="mc-card mb-4 h-14 w-full" />
 
       {error && (
         <div className="mc-card bg-red-100 border-red-600 text-red-900 p-3 text-xs font-mono font-bold mb-4">
@@ -635,7 +635,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
         </div>
       </div>
 
-      <PixelForest className="mc-card mb-4 h-12 w-full" />
+      <PixelPalmBanner className="mc-card mb-4 h-12 w-full" />
 
       {/* Player Stats HUD */}
       <div className="grid grid-cols-4 gap-2 mb-4 text-center">

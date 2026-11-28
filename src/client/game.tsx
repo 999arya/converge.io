@@ -9,15 +9,21 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Header } from './components/Header';
 import { GameBoard } from './components/GameBoard';
+import { PixelGameBackground } from './components/PixelArt';
 
 export const App = () => {
   return (
     <StrictMode>
-      <div className="flex flex-col min-h-screen bg-[#faf8f5] text-zinc-900">
-        <Header />
-        <main className="flex-1 w-full overflow-y-auto">
-          <GameBoard />
-        </main>
+      <div className="relative flex flex-col min-h-screen bg-[#faf8f5] text-zinc-900 overflow-x-hidden selection:bg-amber-300 selection:text-zinc-950">
+        {/* Animated Background Scenery: Pixel Palm Trees & Moving Flying Birds */}
+        <PixelGameBackground />
+
+        <div className="relative z-10 flex flex-col min-h-screen">
+          <Header />
+          <main className="flex-1 w-full overflow-y-auto">
+            <GameBoard />
+          </main>
+        </div>
       </div>
     </StrictMode>
   );

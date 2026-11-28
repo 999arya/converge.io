@@ -4,6 +4,9 @@
 html, body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
   background-color: #faf8f5;
   color: #090d16;
 }
@@ -18,6 +21,7 @@ html, body {
 
 .pixel-art {
   image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 /* Line clamp utilities */
@@ -58,7 +62,7 @@ html, body {
   border-style: solid;
   border-color: #090d16;
   box-shadow: 0 4px 0 #090d16;
-  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.1s ease;
+  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.15s ease, border-color 0.15s ease;
   user-select: none;
   cursor: pointer;
 }
@@ -140,21 +144,21 @@ html, body {
   border: 2px solid #090d16;
   box-shadow: 4px 4px 0 #090d16;
   background-color: #ffffff;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .mc-card-hover {
   cursor: pointer;
 }
 .mc-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 4px 6px 0 #090d16;
+  transform: translateY(-3px);
+  box-shadow: 4px 7px 0 #090d16;
 }
 
 /* Selected Card Highlight */
 .mc-card-selected {
   border: 3px solid #16a34a !important;
-  box-shadow: 0 0 0 2px #4ade80, 4px 6px 0 #090d16 !important;
+  box-shadow: 0 0 0 2px #4ade80, 4px 7px 0 #090d16 !important;
   background-color: #f0fdf4 !important;
 }
 
@@ -167,6 +171,7 @@ html, body {
   border-right: 3px solid #e2e8f0;
   box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.2);
   position: relative;
+  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.12s ease, background-color 0.12s ease;
 }
 
 .mc-slot-empty {
@@ -206,7 +211,7 @@ html, body {
     #15803d 14px
   );
   box-shadow: 0 0 8px #4ade80;
-  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* Minecraft Badge */
@@ -217,6 +222,7 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 /* Minecraft Beveled Banner */
@@ -247,6 +253,7 @@ html, body {
 ::-webkit-scrollbar-thumb {
   background: #94a3b8;
   border: 2px solid #090d16;
+  transition: background-color 0.15s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -296,6 +303,172 @@ html, body {
 
 .animate-pulse-gold {
   animation: pulse-gold 2s infinite;
+}
+
+/* Drawer & Banner Micro-Animations */
+@keyframes drawer-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-drawer-drop {
+  animation: drawer-drop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes hotbar-slide-up {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-hotbar-slide-up {
+  animation: hotbar-slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* =========================================================
+   Pixel Art Palm Trees & Animated Flying Birds System
+   ========================================================= */
+
+/* Stepped wing flapping: 2-frame Minecraft sprite effect */
+@keyframes bird-wing-up-step {
+  0%, 49.9% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes bird-wing-down-step {
+  0%, 49.9% {
+    opacity: 0;
+  }
+  50%, 100% {
+    opacity: 1;
+  }
+}
+
+.pixel-bird-wing-up {
+  animation: bird-wing-up-step 0.32s steps(1) infinite;
+}
+
+.pixel-bird-wing-down {
+  animation: bird-wing-down-step 0.32s steps(1) infinite;
+}
+
+/* Horizontal Bird Flight Paths across background */
+@keyframes bird-fly-ltr-1 {
+  0% {
+    transform: translate3d(-10vw, 0, 0);
+  }
+  100% {
+    transform: translate3d(115vw, 0, 0);
+  }
+}
+
+@keyframes bird-fly-ltr-2 {
+  0% {
+    transform: translate3d(-14vw, 0, 0);
+  }
+  100% {
+    transform: translate3d(115vw, 0, 0);
+  }
+}
+
+@keyframes bird-fly-ltr-3 {
+  0% {
+    transform: translate3d(-18vw, 0, 0);
+  }
+  100% {
+    transform: translate3d(115vw, 0, 0);
+  }
+}
+
+@keyframes bird-fly-rtl {
+  0% {
+    transform: translate3d(115vw, 0, 0);
+  }
+  100% {
+    transform: translate3d(-15vw, 0, 0);
+  }
+}
+
+@keyframes bird-flight-bob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* In-banner local bird flight */
+@keyframes bird-fly-banner {
+  0% {
+    transform: translate3d(-20px, 0, 0);
+  }
+  100% {
+    transform: translate3d(180px, 0, 0);
+  }
+}
+
+/* Palm Tree Sway */
+@keyframes palm-sway-left {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes palm-sway-right {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+.animate-palm-sway-l {
+  transform-origin: bottom center;
+  animation: palm-sway-left 6.5s ease-in-out infinite;
+}
+
+.animate-palm-sway-r {
+  transform-origin: bottom center;
+  animation: palm-sway-right 7.5s ease-in-out infinite 0.7s;
+}
+
+/* Pixel Cloud Drifting */
+@keyframes cloud-drift-1 {
+  0% {
+    transform: translate3d(-25vw, 0, 0);
+  }
+  100% {
+    transform: translate3d(115vw, 0, 0);
+  }
+}
+
+@keyframes cloud-drift-2 {
+  0% {
+    transform: translate3d(-15vw, 0, 0);
+  }
+  100% {
+    transform: translate3d(115vw, 0, 0);
+  }
 }
 
 /* GoaBuilds-inspired arcade boot loader */

@@ -10,7 +10,7 @@ import { createRoot } from 'react-dom/client';
 import { navigateTo, requestExpandedMode } from '@devvit/web/client';
 import type { GetPuzzleResponse } from '../shared/api';
 import type { GameScore, PublicGameSession, PublicPuzzlePost } from '../shared/gameTypes';
-import { PixelForest } from './components/PixelArt';
+import { PixelPalmBanner } from './components/PixelArt';
 import { sounds } from './utils/sound';
 
 type SplashPostProps = {
@@ -125,7 +125,7 @@ export const Splash = () => {
         </div>
       </div>
 
-      <PixelForest className="mc-card mb-2.5 h-10 w-full" />
+      <PixelPalmBanner className="mc-card mb-2.5 h-10 w-full" />
 
       {/* Player Stats HUD */}
       <div className="grid grid-cols-4 gap-1.5 mb-2.5 text-center">

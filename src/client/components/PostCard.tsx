@@ -28,6 +28,7 @@ export const PostCard = ({
   onSelect,
 }: PostCardProps) => {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   const openOriginal = (e: MouseEvent) => {
@@ -52,7 +53,7 @@ export const PostCard = ({
   return (
     <div
       onClick={handleCardClick}
-      className={`mc-card relative bg-white flex flex-col justify-between overflow-hidden transition-all duration-100 ${
+      className={`mc-card relative bg-white flex flex-col justify-between overflow-hidden transition-all duration-150 ${
         selected ? 'mc-card-selected' : 'mc-card-hover'
       } ${disabled ? 'opacity-65 cursor-not-allowed' : 'cursor-pointer'}`}
       role="checkbox"
@@ -71,10 +72,18 @@ export const PostCard = ({
           <img
             src={post.thumbnailUrl}
             alt=""
-            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+            className={`w-full h-full object-cover transition-all duration-300 ease-out group-hover:scale-105 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
             loading="lazy"
+            onLoad={() => setImageLoaded(true)}
             onError={() => setImageFailed(true)}
           />
+          {!imageLoaded && !imageFailed && (
+            <div className="absolute inset-0 bg-zinc-800 animate-pulse flex items-center justify-center font-pixel text-[9px] text-zinc-400">
+              EXPLORING...
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
         </div>
       ) : (
@@ -112,7 +121,7 @@ export const PostCard = ({
           {/* Content snippet */}
           {post.content && (
             <p
-              className={`mt-1.5 text-[11px] sm:text-xs text-zinc-700 leading-relaxed font-body ${
+              className={`mt-1.5 text-[11px] sm:text-xs text-zinc-700 leading-relaxed font-body transition-all duration-200 ${
                 expanded ? 'whitespace-pre-wrap' : 'line-clamp-2'
               }`}
             >
@@ -128,7 +137,7 @@ export const PostCard = ({
                 sounds.playClick();
                 setExpanded((prev) => !prev);
               }}
-              className="mt-1 text-[10px] font-mono font-bold text-emerald-700 hover:underline cursor-pointer"
+              className="mt-1 text-[10px] font-mono font-bold text-emerald-700 hover:underline cursor-pointer transition-colors"
             >
               {expanded ? '▲ Show less' : '▼ Read full'}
             </button>
@@ -140,7 +149,7 @@ export const PostCard = ({
           <button
             type="button"
             onClick={openOriginal}
-            className="text-[10px] font-mono text-zinc-700 hover:text-amber-700 underline flex items-center gap-1 cursor-pointer font-semibold"
+            className="text-[10px] font-mono text-zinc-700 hover:text-amber-700 underline flex items-center gap-1 cursor-pointer font-semibold transition-colors"
           >
             <span>Original Post</span>
             <span>↗</span>
