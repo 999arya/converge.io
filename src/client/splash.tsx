@@ -202,13 +202,18 @@ export const Splash = () => {
 
       {/* Action Bar */}
       <div className="mt-2.5 pt-1">
+        <div className="mc-card bg-amber-400 text-zinc-950 p-2 mb-1.5 text-center">
+          <p className="font-pixel text-[10px] font-black uppercase tracking-widest">
+            {isCompleted ? "▶ TODAY'S RESULT READY" : '▶ START GAME TO ENTER'}
+          </p>
+        </div>
         <button
           type="button"
           onClick={handleStart}
           className="w-full mc-btn mc-btn-gold py-3 px-4 text-xs sm:text-sm font-black flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider animate-pulse-gold"
         >
           <span>⚔️</span>
-          <span>{isCompleted ? "View Today's Result" : "Start Today's Challenge"}</span>
+          <span>{isCompleted ? "VIEW TODAY'S RESULT" : 'START GAME'}</span>
           <span>➔</span>
         </button>
       </div>

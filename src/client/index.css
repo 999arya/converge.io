@@ -294,6 +294,64 @@ html, body {
   animation: pulse-gold 2s infinite;
 }
 
+/* GoaBuilds-inspired arcade boot loader */
+.arcade-loader-tiles {
+  position: absolute;
+  inset: -10%;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 34px, rgba(255, 194, 71, 0.18) 34px 42px),
+    repeating-linear-gradient(0deg, transparent 0 34px, rgba(255, 75, 24, 0.16) 34px 42px);
+  animation: arcade-loader-grid 1.2s linear infinite;
+}
+
+.arcade-loader-logo {
+  animation: arcade-loader-bob 0.9s steps(2) infinite alternate;
+}
+
+.arcade-loader-track {
+  width: min(72vw, 320px);
+  height: 10px;
+  border: 2px solid #ffc247;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 3px 3px 0 #050505;
+  overflow: hidden;
+}
+
+.arcade-loader-fill {
+  width: 100%;
+  height: 100%;
+  background: #ffc247;
+  transform-origin: left center;
+  animation: arcade-loader-fill 1.5s steps(20) forwards;
+}
+
+@keyframes arcade-loader-grid {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(8px, 8px);
+  }
+}
+
+@keyframes arcade-loader-bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes arcade-loader-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 /* Focus styles */
 *:focus-visible {
   outline: 3px solid #f59e0b;

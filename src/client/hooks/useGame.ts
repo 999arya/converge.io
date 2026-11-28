@@ -8,10 +8,12 @@ import type {
   FinalizeResponse,
   GetPuzzleResponse,
   GetStreakResponse,
+  ReplayResponse,
   Stage1Feedback,
   Stage1Response,
   Stage2Response,
 } from '../../shared/api';
+import { DEV_REPLAY_ENABLED } from '../../shared/gameConfig';
 import type {
   GameScore,
   GameState,
@@ -293,6 +295,41 @@ export const useGame = () => {
     [state.puzzle, state.session]
   );
 
+  const replayGame = useCallback(async () => {
+    const puzzle = state.puzzle;
+    if (!puzzle || !DEV_REPLAY_ENABLED) return;
+
+    setState((prev) => ({ ...prev, submitting: true, error: null }));
+    try {
+      const response = await fetch('/api/game/replay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ puzzleId: puzzle.id }),
+      });
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response, 'Failed to replay puzzle'));
+      }
+
+      const data: ReplayResponse = await response.json();
+      setState((prev) => ({
+        ...prev,
+        session: data.session,
+        score: null,
+        selectedPostIds: [],
+        stage1Feedback: null,
+        submitting: false,
+        error: null,
+      }));
+    } catch (error) {
+      console.error('Replay failed:', error);
+      setState((prev) => ({
+        ...prev,
+        submitting: false,
+        error: error instanceof Error ? error.message : 'Failed to replay puzzle.',
+      }));
+    }
+  }, [state.puzzle]);
+
   return {
     puzzle: state.puzzle,
     session: state.session,
@@ -312,6 +349,7 @@ export const useGame = () => {
     submitStage1,
     submitStage2,
     finalizeGame,
+    replayGame,
     reloadGame: loadGame,
   };
 };

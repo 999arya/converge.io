@@ -25,6 +25,12 @@ Each daily puzzle contains:
 - Correctness is hidden until results are revealed.
 - Each correct answer earns 1 star.
 
+### Development replay
+
+- A yellow **Replay (Dev)** button appears after a wrong Stage 1 attempt, and a **Replay Daily Challenge (Dev)** button appears on the results screen.
+- Replay clears only the current puzzle session. Daily stars, streak, and totals are still awarded at most once per day.
+- `src/shared/gameConfig.ts` contains the temporary controls: set `DEV_REPLAY_ENABLED` to `false` and `STAGE1_ATTEMPT_CAP` to `3` when the production three-attempt rule is enabled.
+
 ## Project Structure
 
 ```
@@ -43,6 +49,7 @@ src/
 │   └── index.ts
 └── shared/
     ├── api.ts
+    ├── gameConfig.ts
     └── gameTypes.ts
 ```
 
@@ -54,7 +61,8 @@ During seeding, each hand-curated puzzle slot is replaced with a real Reddit pos
 
 - `GET /api/game/puzzle` - Load the public puzzle and session.
 - `POST /api/game/stage1` - Submit the 3-post selection.
-- `POST /api/game/stage2` - Submit one locked subreddit answer.
+- `POST /api/game/stage2` - Save or replace one subreddit answer.
+- `POST /api/game/replay` - Development-only session reset.
 - `POST /api/game/finalize` - Finalize score and return the reveal.
 - `GET /api/game/streak` - Load streak, completed count, and flair.
 - `POST /api/game/seed` - Re-seed puzzles manually if needed.

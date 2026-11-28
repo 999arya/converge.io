@@ -4,6 +4,7 @@
  */
 
 import { reddit, redis, type Post } from '@devvit/web/server';
+import { STAGE1_ATTEMPT_CAP } from '../../shared/gameConfig';
 import {
   formatSubreddit,
   getFlairTier,
@@ -612,6 +613,22 @@ export async function getSession(
   return { session, isNew: true };
 }
 
+/** Development-only: clears the current puzzle attempt so it can be replayed. */
+export async function resetSession(userId: string, puzzleId: string): Promise<GameSession> {
+  const session: GameSession = {
+    puzzleId,
+    stage: 'STAGE_1_READY',
+    selectedPostIds: [],
+    stage1Attempts: 0,
+    stage1Correct: false,
+    stage2Answers: [],
+    stage2CurrentQuestion: 0,
+    startedAt: Date.now(),
+  };
+  await saveSession(userId, session);
+  return session;
+}
+
 function countCorrectSelectedPosts(puzzle: Puzzle, selectedPostIds: string[]): number {
   const correctIds = new Set(puzzle.connection.connectedPostIds);
   let count = 0;
@@ -655,7 +672,24 @@ export async function submitStage1(
     };
   }
 
-  // Unlimited attempts – no cap enforced
+  // Future production rule: set STAGE1_ATTEMPT_CAP to 3 to stop after 3 tries.
+  if (STAGE1_ATTEMPT_CAP !== null && session.stage1Attempts >= STAGE1_ATTEMPT_CAP) {
+    return {
+      success: false,
+      correct: false,
+      attempts: session.stage1Attempts,
+      correctCount: 0,
+      feedback: {
+        correctCount: 0,
+        attempts: session.stage1Attempts,
+        canRetry: false,
+        failed: true,
+      },
+      session,
+    };
+  }
+
+  // Development mode: unlimited attempts.
   session.selectedPostIds = selectedPostIds;
   session.stage1Attempts += 1;
 

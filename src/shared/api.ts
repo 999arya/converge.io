@@ -76,6 +76,14 @@ export type Stage2Response = {
   session: PublicGameSession;
 };
 
+export type ReplayRequest = {
+  puzzleId: string;
+};
+
+export type ReplayResponse = {
+  session: PublicGameSession;
+};
+
 export type FinalizeRequest = {
   puzzleId: string;
 };

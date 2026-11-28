@@ -10,11 +10,14 @@ import type {
   FinalizeResponse,
   GetPuzzleResponse,
   GetStreakResponse,
+  ReplayRequest,
+  ReplayResponse,
   Stage1Request,
   Stage1Response,
   Stage2Request,
   Stage2Response,
 } from '../../shared/api';
+import { DEV_REPLAY_ENABLED } from '../../shared/gameConfig';
 import type {
   PublicConnection,
   PublicPuzzle,
@@ -27,6 +30,7 @@ import {
   getSession,
   getStreak,
   getTodayPuzzleId,
+  resetSession,
   seedPuzzles,
   submitStage1,
   submitStage2,
@@ -185,6 +189,52 @@ gameApi.post('/stage2', async (c) => {
     console.error('Stage 2 submit error:', error);
     return c.json<ErrorResponse>(
       { status: 'error', message: 'Failed to submit Stage 2' },
+      500
+    );
+  }
+});
+
+gameApi.post('/replay', async (c) => {
+  if (!DEV_REPLAY_ENABLED) {
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'Replay is disabled' },
+      403
+    );
+  }
+
+  const auth = requireContext();
+  if (!auth) {
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'Authentication required' },
+      401
+    );
+  }
+
+  try {
+    const body = await c.req.json<ReplayRequest>();
+    const { puzzleId } = body;
+
+    if (!puzzleId) {
+      return c.json<ErrorResponse>(
+        { status: 'error', message: 'puzzleId required' },
+        400
+      );
+    }
+
+    const puzzle = await getPuzzle(puzzleId);
+    if (!puzzle) {
+      return c.json<ErrorResponse>(
+        { status: 'error', message: 'Puzzle not found' },
+        404
+      );
+    }
+
+    const session = await resetSession(auth.userId, puzzleId);
+    return c.json<ReplayResponse>({ session: toPublicSession(session) });
+  } catch (error) {
+    console.error('Replay error:', error);
+    return c.json<ErrorResponse>(
+      { status: 'error', message: 'Failed to replay puzzle' },
       500
     );
   }

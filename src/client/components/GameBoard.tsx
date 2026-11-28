@@ -7,8 +7,9 @@
  * - Optimized for full scrollability and light-theme contrast.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { navigateTo } from '@devvit/web/client';
+import { DEV_REPLAY_ENABLED } from '../../shared/gameConfig';
 import { formatSubreddit } from '../../shared/gameTypes';
 import type {
   GameScore,
@@ -23,6 +24,30 @@ import { sounds } from '../utils/sound';
 function isFullPuzzle(value: PublicPuzzle | Puzzle): value is Puzzle {
   return Boolean(value.connection.theme && value.connection.theme !== '???');
 }
+
+/** GoaBuilds-inspired arcade boot screen shown before the daily quest. */
+const ArcadeLoader = () => (
+  <div className="arcade-loader fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#071426] text-white">
+    <div className="arcade-loader-tiles" aria-hidden="true" />
+    <div className="relative z-10 flex flex-col items-center px-6 text-center">
+      <div className="arcade-loader-logo mb-6 flex h-24 w-24 items-center justify-center border-4 border-[#FFC247] bg-[#050505] font-pixel text-4xl font-black text-[#FFC247] shadow-[8px_8px_0_#FF4B18]">
+        C
+      </div>
+      <p className="font-pixel text-lg tracking-[0.35em] text-[#FFC247] uppercase drop-shadow-[2px_2px_0_#050505]">
+        Converge
+      </p>
+      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.3em] text-white/70">
+        Loading today&apos;s quest
+      </p>
+      <div className="arcade-loader-track mt-6">
+        <div className="arcade-loader-fill" />
+      </div>
+      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/60">
+        Generating Reddit world...
+      </p>
+    </div>
+  </div>
+);
 
 export const GameBoard = () => {
   const {
@@ -39,26 +64,21 @@ export const GameBoard = () => {
     submitStage1,
     submitStage2,
     finalizeGame,
+    replayGame,
     reloadGame,
   } = useGame();
 
   const [hintOpen, setHintOpen] = useState(false);
+  const [booting, setBooting] = useState(true);
 
-  // Loading Screen with Minecraft spin box
-  if (loading || (!puzzle && !error)) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[420px] p-6 text-center">
-        <div className="w-14 h-14 bg-amber-400 border-3 border-zinc-950 shadow-[4px_4px_0_#090d16] flex items-center justify-center font-pixel text-lg font-black animate-block-float mb-4 text-zinc-950">
-          C
-        </div>
-        <h2 className="font-pixel text-sm text-zinc-950 uppercase tracking-wider mb-2">
-          Generating Today's World...
-        </h2>
-        <p className="text-xs font-mono text-zinc-600">
-          Fetching 5 Reddit artifacts and community biomes
-        </p>
-      </div>
-    );
+  useEffect(() => {
+    const timer = window.setTimeout(() => setBooting(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  // Arcade-style boot sequence before the daily game appears.
+  if (booting || loading || (!puzzle && !error)) {
+    return <ArcadeLoader />;
   }
 
   // Error Screen
@@ -92,7 +112,7 @@ export const GameBoard = () => {
         puzzle={puzzle}
         session={session}
         score={score}
-        onReplay={() => void reloadGame()}
+        onReplay={() => void (DEV_REPLAY_ENABLED ? replayGame() : reloadGame())}
       />
     );
   }
@@ -183,12 +203,25 @@ export const GameBoard = () => {
 
       {/* Feedback Alert Banner */}
       {stage1Feedback && (
-        <div className="mc-card bg-amber-100 text-amber-900 border-amber-600 p-3.5 mb-4 text-xs font-mono font-bold flex items-center gap-2.5">
+        <div className="mc-card bg-amber-100 text-amber-900 border-amber-600 p-3.5 mb-4 text-xs font-mono font-bold flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
           <span className="text-base">⚡</span>
-          <p>
+          <p className="flex-1">
             Not quite: {stage1Feedback.correctCount} of 3 selected posts are connected. Change
             your selection and try again - unlimited attempts!
           </p>
+          {DEV_REPLAY_ENABLED && (
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => {
+                sounds.playClick();
+                void replayGame();
+              }}
+              className="mc-btn mc-btn-gold py-2 px-3 text-[10px] uppercase whitespace-nowrap"
+            >
+              🔄 Replay (Dev)
+            </button>
+          )}
         </div>
       )}
 
@@ -764,7 +797,9 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
           }}
           className="mc-btn mc-btn-gold py-3 px-8 text-xs uppercase font-bold"
         >
-          🔄 Refresh Daily Challenge
+          {DEV_REPLAY_ENABLED
+            ? '🔄 Replay Daily Challenge (Dev)'
+            : '🔄 Refresh Daily Challenge'}
         </button>
       </div>
     </div>
