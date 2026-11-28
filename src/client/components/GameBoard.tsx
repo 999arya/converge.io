@@ -32,7 +32,10 @@ function isFullPuzzle(value: PublicPuzzle | Puzzle): value is Puzzle {
 const ArcadeLoader = () => (
   <div className="arcade-loader fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#071426] text-white">
     <div className="arcade-loader-tiles" aria-hidden="true" />
-    <PixelPalmBanner className="absolute inset-x-0 bottom-0 z-0 h-24 opacity-90" dark />
+    <PixelPalmBanner
+      className="absolute inset-x-0 bottom-0 z-0 aspect-[200/48] max-h-24 w-full opacity-90"
+      dark
+    />
     <div className="relative z-10 flex flex-col items-center px-6 text-center">
       <div className="arcade-loader-logo mb-6 flex h-24 w-24 items-center justify-center border-4 border-[#FFC247] bg-[#050505] font-pixel text-4xl font-black text-[#FFC247] shadow-[8px_8px_0_#FF4B18]">
         C
@@ -194,7 +197,7 @@ export const GameBoard = () => {
         )}
       </div>
 
-      <PixelPalmBanner className="mc-card mb-4 h-14 w-full" />
+      <PixelPalmBanner className="mc-card mb-4 aspect-[200/48] max-h-20 w-full" />
 
       {/* Clue Scroll Drawer / Modal */}
       {hintOpen && puzzle.connection.hint && (
@@ -445,7 +448,7 @@ const StageTwo = ({
         </div>
       </div>
 
-      <PixelPalmBanner className="mc-card mb-4 h-14 w-full" />
+      <PixelPalmBanner className="mc-card mb-4 aspect-[200/48] max-h-20 w-full" />
 
       {error && (
         <div className="mc-card bg-red-100 border-red-600 text-red-900 p-3 text-xs font-mono font-bold mb-4">
@@ -635,7 +638,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
         </div>
       </div>
 
-      <PixelPalmBanner className="mc-card mb-4 h-12 w-full" />
+      <PixelPalmBanner className="mc-card mb-4 aspect-[200/48] max-h-20 w-full" />
 
       {/* Player Stats HUD */}
       <div className="grid grid-cols-4 gap-2 mb-4 text-center">

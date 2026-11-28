@@ -125,7 +125,7 @@ export const Splash = () => {
         </div>
       </div>
 
-      <PixelPalmBanner className="mc-card mb-2.5 h-10 w-full" />
+      <PixelPalmBanner className="mc-card mb-2.5 aspect-[200/48] max-h-20 w-full" />
 
       {/* Player Stats HUD */}
       <div className="grid grid-cols-4 gap-1.5 mb-2.5 text-center">
