@@ -290,7 +290,7 @@ export const PixelForest = ({ className, dark = false }: PixelForestProps) => {
     >
       <svg
         viewBox="0 0 160 40"
-        preserveAspectRatio="xMidYMax slice"
+        preserveAspectRatio="none"
         shapeRendering="crispEdges"
         className="h-full w-full"
       >
@@ -544,7 +544,7 @@ export const PixelPalmBanner = ({
     >
       <svg
         viewBox="0 0 200 48"
-        preserveAspectRatio="xMidYMax slice"
+        preserveAspectRatio="none"
         shapeRendering="crispEdges"
         className="h-full w-full"
       >

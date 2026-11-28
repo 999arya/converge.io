@@ -103,7 +103,7 @@ export const Splash = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-[#faf8f5] bg-pixel-grid p-3 sm:p-4 text-zinc-900 justify-between overflow-y-auto">
+    <div className="flex flex-col min-h-screen bg-[#faf8f5] bg-pixel-grid p-3 sm:p-4 pb-4 text-zinc-900">
       {/* Top Boxy Brand Bar */}
       <div className="mc-card bg-emerald-700 text-white p-3 flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2.5">
@@ -152,7 +152,7 @@ export const Splash = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col justify-center my-1">
+      <div className="flex-1 flex flex-col justify-start sm:justify-center my-1">
         {isCompleted ? (
           <div className="mc-card bg-emerald-50 border-emerald-600 p-4 text-center my-auto">
             <div className="inline-block mc-badge bg-emerald-600 text-white text-[9px] px-2.5 py-1 mb-2 font-pixel">
@@ -193,7 +193,7 @@ export const Splash = () => {
                 Loading today's challenge...
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-1">
                 {posts.slice(0, 4).map((post, idx) => (
                   <SplashPost key={post.id} post={post} index={idx} />
                 ))}
@@ -204,7 +204,7 @@ export const Splash = () => {
       </div>
 
       {/* Action Bar */}
-      <div className="mt-2.5 pt-1">
+      <div className="mt-auto shrink-0 pt-3">
         <div className="mc-card bg-amber-400 text-zinc-950 p-2 mb-1.5 text-center">
           <p className="font-pixel text-[10px] font-black uppercase tracking-widest">
             {isCompleted ? "▶ TODAY'S RESULT READY" : '▶ START GAME TO ENTER'}
@@ -222,7 +222,7 @@ export const Splash = () => {
       </div>
 
       {/* Footer Navigation */}
-      <footer className="mt-2 flex items-center justify-center gap-3 text-[10px] font-mono text-zinc-700">
+      <footer className="mt-2 shrink-0 pb-1 flex items-center justify-center gap-3 text-[10px] font-mono text-zinc-700">
         <button
           type="button"
           className="hover:text-amber-700 underline cursor-pointer"

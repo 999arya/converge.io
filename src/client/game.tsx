@@ -20,7 +20,7 @@ export const App = () => {
 
         <div className="relative z-10 flex flex-col min-h-screen">
           <Header />
-          <main className="flex-1 w-full overflow-y-auto">
+          <main className="flex-1 w-full">
             <GameBoard />
           </main>
         </div>
