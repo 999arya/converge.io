@@ -18,8 +18,15 @@ export type PuzzlePost = {
 export type Connection = {
   theme: string;
   explanation: string;
+  hint?: string;
   connectedPostIds: string[];
   distractorPostIds: string[];
+};
+
+export type DiscoveredCommunity = {
+  name: string;
+  description: string;
+  puzzleDate: string;
 };
 
 export type Puzzle = {

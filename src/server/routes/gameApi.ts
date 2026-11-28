@@ -72,6 +72,7 @@ gameApi.get('/puzzle', async (c) => {
     const safeConnection: PublicConnection = {
       theme: '???',
       explanation: '???',
+      hint: puzzle.connection.hint,
       connectedPostIds: [],
       distractorPostIds: [],
     };

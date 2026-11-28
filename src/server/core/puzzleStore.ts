@@ -48,6 +48,7 @@ const DEFAULT_PUZZLES: Puzzle[] = [
     connection: {
       theme: 'Fermentation & Temperature Control',
       explanation: 'The three connected posts are all about managing living cultures and fermentation temperatures: sourdough levain, cold-retard wild fermentation, and high-temp brewing yeast.',
+      hint: 'Think about active living micro-cultures and precise thermal control.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
@@ -70,6 +71,7 @@ const DEFAULT_PUZZLES: Puzzle[] = [
     connection: {
       theme: 'The Art of the Razor Edge',
       explanation: 'These three posts all explore extreme edge sharpening and abrasive polishing: whetstone progressions, wood chisel burr removal, and push-cutting kitchen blade bevels.',
+      hint: 'Focus on abrasive stones, apex angles, and achieving shaving-sharp steel.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
@@ -92,6 +94,7 @@ const DEFAULT_PUZZLES: Puzzle[] = [
     connection: {
       theme: 'Urban Decay & Nature Reclaiming',
       explanation: 'Human-built places are slowly reclaimed by wild vegetation: an abandoned theater auditorium, a derelict industrial factory, and cracked urban pavement.',
+      hint: 'Notice human architecture slowly surrendered back to wild flora and moss.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
@@ -114,6 +117,7 @@ const DEFAULT_PUZZLES: Puzzle[] = [
     connection: {
       theme: 'Patient Hand Craftsmanship',
       explanation: 'Traditional manual shaping with specialized hand tools: sawing dovetail pins in timber, forging red-hot iron on an anvil, and microscopic tuning of gold pen nibs.',
+      hint: 'Look for patience and specialized manual shaping using historic artisanal hand tools.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
@@ -136,6 +140,7 @@ const DEFAULT_PUZZLES: Puzzle[] = [
     connection: {
       theme: 'Intricate Microscopic Geometries',
       explanation: 'Revealing the tiny ordered structures invisible to the naked eye: branching snowflake crystals, photonic butterfly wing scales, and sub-millimeter copper circuit traces.',
+      hint: 'Structures unseen by the naked eye until magnified under optical lenses.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
@@ -158,6 +163,7 @@ const DEFAULT_PUZZLES: Puzzle[] = [
     connection: {
       theme: 'Illuminating the Night',
       explanation: 'Mastering and capturing intentional light after dark: deep-space long exposures of the Milky Way, choreographed light-painting stencils, and ultra-high-candela flashlight beams.',
+      hint: 'Harnessing and capturing rays of light piercing through pitch black night.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
@@ -180,6 +186,7 @@ const DEFAULT_PUZZLES: Puzzle[] = [
     connection: {
       theme: 'Bringing Antiques Back to Life',
       explanation: 'Careful historical restoration of vintage century-old mechanisms: cast iron waffle irons, glowing vacuum-tube receivers, and 1800s hand-bound leather books.',
+      hint: 'Restoring historical relics from a bygone century to working order.',
       connectedPostIds: ['p1', 'p2', 'p3'],
       distractorPostIds: ['p4', 'p5'],
     },
@@ -407,7 +414,7 @@ export type UserProgress = {
   flairTier: FlairTier;
 };
 
-const PUZZLE_VERSION = '6';
+const PUZZLE_VERSION = '7';
 const THUMBNAIL_RETRY_MS = 10 * 60 * 1000;
 
 export async function seedPuzzles(): Promise<void> {

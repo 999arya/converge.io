@@ -1,11 +1,11 @@
 /**
  * Converge Splash - Inline Feed View
- * Minecraft Boxy Aesthetic Entry Screen
+ * Minecraft Boxy Aesthetic Entry Screen for Reddit Feed
  */
 
 import './index.css';
 
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, useEffect, useState, type MouseEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { navigateTo, requestExpandedMode } from '@devvit/web/client';
 import type { GetPuzzleResponse } from '../shared/api';
@@ -33,7 +33,7 @@ const SplashPost = ({ post, index }: SplashPostProps) => {
             onError={() => setImageFailed(true)}
           />
         ) : (
-          <span className="font-pixel text-[10px] text-emerald-400 font-bold">#{index + 1}</span>
+          <span className="font-pixel text-[10px] text-amber-400 font-bold">#{index + 1}</span>
         )}
       </div>
       <div className="min-w-0 flex-1">
@@ -41,7 +41,7 @@ const SplashPost = ({ post, index }: SplashPostProps) => {
           {post.title}
         </p>
         <p className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
-          u/{post.author} · {post.score.toLocaleString()} ↑
+          u/{post.author} · ↑ {post.score.toLocaleString()}
         </p>
       </div>
     </div>
@@ -96,36 +96,36 @@ export const Splash = () => {
   );
   const completedScore: GameScore | undefined = session?.score;
 
-  const handleStart = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleStart = (e: MouseEvent<HTMLButtonElement>) => {
     sounds.playSelect();
     requestExpandedMode(e.nativeEvent, 'game');
   };
 
   return (
-    <div className="flex flex-col h-full min-h-[380px] bg-amber-50/40 dark:bg-zinc-950 bg-pixel-grid p-3 sm:p-4 text-zinc-900 dark:text-zinc-100">
+    <div className="flex flex-col h-full min-h-[400px] bg-amber-50/50 dark:bg-zinc-950 bg-pixel-grid p-3 sm:p-4 text-zinc-900 dark:text-zinc-100 justify-between">
       {/* Top Boxy Brand Bar */}
-      <div className="mc-card bg-emerald-700 text-white p-3 flex items-center justify-between mb-3">
+      <div className="mc-card bg-emerald-700 text-white p-3 flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-amber-400 text-zinc-950 border-2 border-zinc-950 shadow-[2px_2px_0_#000] flex items-center justify-center font-pixel text-xs font-black">
+          <div className="w-8 h-8 bg-amber-400 text-zinc-950 border-2 border-zinc-950 shadow-[2px_2px_0_#090d16] flex items-center justify-center font-pixel text-xs font-black">
             C
           </div>
           <div>
             <h1 className="font-pixel text-xs sm:text-sm tracking-wider uppercase text-amber-300 drop-shadow-[1px_1px_0_#000]">
-              Converge
+              CONVERGE
             </h1>
-            <p className="text-[10px] font-mono text-emerald-100">DAILY REDDIT PUZZLE</p>
+            <p className="text-[9px] font-mono text-emerald-100">DAILY REDDIT DISCOVERY QUEST</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="mc-badge bg-zinc-900 text-amber-300 text-[9px] px-2 py-1 uppercase">
+        <div className="flex items-center gap-1.5">
+          <span className="mc-badge bg-zinc-950 text-amber-300 text-[9px] px-2 py-1 uppercase font-pixel">
             {puzzleDate}
           </span>
         </div>
       </div>
 
       {/* Player Stats HUD */}
-      <div className="grid grid-cols-4 gap-1.5 mb-3 text-center">
+      <div className="grid grid-cols-4 gap-1.5 mb-2.5 text-center">
         <div className="mc-card bg-white dark:bg-zinc-900 p-1.5">
           <p className="text-[9px] font-mono text-zinc-500 uppercase">Streak</p>
           <p className="font-pixel text-[11px] text-amber-500 font-bold mt-0.5">🔥{streak}</p>
@@ -149,42 +149,48 @@ export const Splash = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col justify-center">
+      <div className="flex-1 flex flex-col justify-center my-1">
         {isCompleted ? (
           <div className="mc-card bg-emerald-50 dark:bg-zinc-900 border-emerald-600 p-4 text-center my-auto">
-            <div className="inline-block mc-badge bg-emerald-600 text-white text-[10px] px-2.5 py-1 mb-2">
-              TODAY'S CHALLENGE COMPLETED
+            <div className="inline-block mc-badge bg-emerald-600 text-white text-[9px] px-2.5 py-1 mb-2 font-pixel">
+              TODAY'S QUEST COMPLETED
             </div>
             <div className="text-3xl my-2 text-amber-400 drop-shadow-[2px_2px_0_#000]">
               {'★'.repeat(completedScore?.starsEarned ?? 0)}
               {'☆'.repeat(3 - (completedScore?.starsEarned ?? 0))}
             </div>
-            <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
               {completedScore?.connectionSolved
-                ? 'You solved the connection!'
+                ? '✨ You conquered the daily connection!'
                 : 'Connection missed for today.'}
             </p>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
-              {completedScore?.correctSubredditGuesses ?? 0} of 3 subreddits identified correctly.
+            <p className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 mt-1">
+              {completedScore?.correctSubredditGuesses ?? 0} of 3 subreddits identified.
             </p>
           </div>
         ) : (
           <div>
+            {/* Rules Overview Banner */}
             <div className="mc-card bg-amber-100 dark:bg-zinc-900/90 p-2.5 mb-2.5">
-              <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
-                🎯 Connect 3 posts · Name 3 subreddits · Earn 3 stars
-              </p>
-              <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">
-                5 posts are shown. 3 share a hidden theme, 2 are distractors. Can you find them?
+              <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                <span>🎯</span>
+                <span>HOW TO PLAY:</span>
+              </div>
+              <p className="text-[11px] text-zinc-700 dark:text-zinc-300 mt-1 font-mono leading-tight">
+                1. Inspect 5 Reddit posts & pick the 3 connected posts (2 are distractors).
+                <br />
+                2. Identify the originating subreddit for each connected post.
+                <br />
+                3. Earn up to 3 stars & expand your community discovery collection!
               </p>
             </div>
 
             {loading ? (
-              <div className="mc-card bg-white dark:bg-zinc-900 p-6 text-center text-xs text-zinc-500 font-mono">
-                Loading today's posts...
+              <div className="mc-card bg-white dark:bg-zinc-900 p-5 text-center text-xs text-zinc-500 font-mono">
+                Loading today's challenge...
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
                 {posts.slice(0, 4).map((post, idx) => (
                   <SplashPost key={post.id} post={post} index={idx} />
                 ))}
@@ -195,11 +201,11 @@ export const Splash = () => {
       </div>
 
       {/* Action Bar */}
-      <div className="mt-3 pt-2">
+      <div className="mt-2.5 pt-1">
         <button
           type="button"
           onClick={handleStart}
-          className="w-full mc-btn mc-btn-gold py-3 px-4 text-xs sm:text-sm font-black flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
+          className="w-full mc-btn mc-btn-gold py-3 px-4 text-xs sm:text-sm font-black flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider animate-pulse-gold"
         >
           <span>⚔️</span>
           <span>{isCompleted ? "View Today's Result" : "Start Today's Challenge"}</span>
@@ -208,7 +214,7 @@ export const Splash = () => {
       </div>
 
       {/* Footer Navigation */}
-      <footer className="mt-2.5 flex items-center justify-center gap-3 text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+      <footer className="mt-2 flex items-center justify-center gap-3 text-[10px] font-mono text-zinc-500 dark:text-zinc-400">
         <button
           type="button"
           className="hover:text-amber-600 dark:hover:text-amber-400 underline cursor-pointer"
