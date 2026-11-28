@@ -63,7 +63,7 @@ export const Header = () => {
                 {displayDate}
               </span>
             </div>
-            <p className="text-[10px] font-mono text-zinc-700">
+            <p className="text-[10px] font-mono text-zinc-900">
               DAILY REDDIT PUZZLE
             </p>
           </div>
@@ -71,7 +71,7 @@ export const Header = () => {
 
         {/* Center: Minecraft XP Bar */}
         <div className="hidden md:flex flex-col items-center min-w-[200px] max-w-[260px] flex-1 px-4">
-          <div className="w-full flex items-center justify-between text-[9px] font-mono mb-1 text-zinc-700 font-bold uppercase">
+          <div className="w-full flex items-center justify-between text-[9px] font-mono mb-1 text-zinc-900 font-bold uppercase">
             <span>Tier: {flairTier}</span>
             <span>
               {xp.current}/{xp.max} XP

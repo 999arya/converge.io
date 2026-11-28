@@ -43,13 +43,13 @@ const ArcadeLoader = () => (
       <p className="font-pixel text-lg tracking-[0.35em] text-[#FFC247] uppercase drop-shadow-[2px_2px_0_#050505]">
         Converge
       </p>
-      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.3em] text-white/70">
+      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.3em] text-white/85">
         Loading today&apos;s quest
       </p>
       <div className="arcade-loader-track mt-6">
         <div className="arcade-loader-fill" />
       </div>
-      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/60">
+      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/85">
         Generating Reddit world...
       </p>
     </div>
@@ -97,7 +97,7 @@ export const GameBoard = () => {
           <h2 className="font-pixel text-sm text-red-600 mb-2 uppercase">
             World Error
           </h2>
-          <p className="text-xs font-mono text-zinc-700 mb-5">
+          <p className="text-xs font-mono text-zinc-900 mb-5">
             {error ?? 'Puzzle data unavailable. Please reconnect.'}
           </p>
           <button
@@ -320,7 +320,7 @@ export const GameBoard = () => {
                     clearSelection();
                   }}
                   disabled={submitting}
-                  className="text-[10px] font-mono text-zinc-700 hover:text-zinc-950 underline ml-2 font-bold cursor-pointer"
+                  className="text-[10px] font-mono text-zinc-900 hover:text-zinc-950 underline ml-2 font-bold cursor-pointer"
                 >
                   Clear
                 </button>
@@ -469,7 +469,7 @@ const StageTwo = ({
                   Artifact #{index + 1}
                 </span>
                 {post && (
-                  <span className="text-[10px] font-mono text-zinc-700 font-bold">
+                  <span className="text-[10px] font-mono text-zinc-900 font-bold">
                     u/{post.author} · ↑ {post.score.toLocaleString()}
                   </span>
                 )}
@@ -520,7 +520,7 @@ const StageTwo = ({
         <h3 className="font-pixel text-xs text-emerald-800 uppercase mb-2">
           {allAnswered ? 'All Biomes Explored!' : 'Finish Your Expedition'}
         </h3>
-        <p className="text-xs font-mono text-zinc-700 mb-4">
+        <p className="text-xs font-mono text-zinc-900 mb-4">
           {allAnswered
             ? 'Your answers are saved. Reveal results when you are ready - correct communities stay hidden until then.'
             : `Answer all ${questions.length} questions to unlock the final reveal.`}
@@ -605,7 +605,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
                 className={`w-12 h-12 sm:w-16 sm:h-16 mc-card flex items-center justify-center text-2xl sm:text-3xl font-black animate-star-pop ${
                   isEarned
                     ? 'bg-amber-300 text-zinc-950 border-zinc-950'
-                    : 'bg-zinc-200 text-zinc-700 border-zinc-500'
+                    : 'bg-zinc-200 text-zinc-900 border-zinc-500'
                 }`}
                 style={{ animationDelay: `${starIdx * 150}ms` }}
               >
@@ -643,21 +643,21 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
       {/* Player Stats HUD */}
       <div className="grid grid-cols-4 gap-2 mb-4 text-center">
         <div className="mc-card bg-white p-2.5">
-          <p className="text-[9px] font-mono text-zinc-700 uppercase">Streak</p>
+          <p className="text-[9px] font-mono text-zinc-900 uppercase">Streak</p>
           <p className="font-pixel text-xs text-amber-800 font-bold mt-1">🔥 {score.streak}</p>
         </div>
         <div className="mc-card bg-white p-2.5">
-          <p className="text-[9px] font-mono text-zinc-700 uppercase">Total Stars</p>
+          <p className="text-[9px] font-mono text-zinc-900 uppercase">Total Stars</p>
           <p className="font-pixel text-xs text-amber-700 font-bold mt-1">⭐ {score.lifetimeStars}</p>
         </div>
         <div className="mc-card bg-white p-2.5">
-          <p className="text-[9px] font-mono text-zinc-700 uppercase">Solved</p>
+          <p className="text-[9px] font-mono text-zinc-900 uppercase">Solved</p>
           <p className="font-pixel text-xs text-emerald-700 font-bold mt-1">
             {score.totalCompleted}
           </p>
         </div>
         <div className="mc-card bg-white p-2.5">
-          <p className="text-[9px] font-mono text-zinc-700 uppercase">Tier</p>
+          <p className="text-[9px] font-mono text-zinc-900 uppercase">Tier</p>
           <p className="font-pixel text-[8px] sm:text-[9px] text-purple-700 font-bold mt-1 truncate">
             {score.flairTier}
           </p>
@@ -730,7 +730,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
                     <h5 className="font-bold text-xs sm:text-sm text-zinc-950">
                       {post.title}
                     </h5>
-                    <p className="text-[11px] font-mono text-zinc-700 mt-0.5">
+                    <p className="text-[11px] font-mono text-zinc-900 mt-0.5">
                       u/{post.author} · ↑ {post.score.toLocaleString()}
                     </p>
                   </div>
@@ -738,7 +738,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
                   {/* Subreddit Comparison */}
                   <div className="mc-slot p-3 bg-zinc-50 text-xs font-mono space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-700">Correct Subreddit:</span>
+                      <span className="text-zinc-900">Correct Subreddit:</span>
                       <span className="text-emerald-700 font-bold">
                         {formatSubreddit(correctSubreddit)}
                       </span>
@@ -746,7 +746,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
 
                     {answer && (
                       <div className="flex items-center justify-between">
-                        <span className="text-zinc-700">Your Answer:</span>
+                        <span className="text-zinc-900">Your Answer:</span>
                         <span
                           className={`font-bold ${wasCorrect ? 'text-emerald-700' : 'text-red-600'}`}
                         >
@@ -800,7 +800,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
             <h4 className="font-pixel text-xs text-amber-800 uppercase mb-1">
               Community Biome Codex
             </h4>
-            <p className="text-xs font-mono text-zinc-700 mb-4">
+            <p className="text-xs font-mono text-zinc-900 mb-4">
               Subreddits discovered and cataloged during your Converge expeditions.
             </p>
 

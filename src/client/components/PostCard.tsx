@@ -80,7 +80,7 @@ export const PostCard = ({
             onError={() => setImageFailed(true)}
           />
           {!imageLoaded && !imageFailed && (
-            <div className="absolute inset-0 bg-zinc-800 animate-pulse flex items-center justify-center font-pixel text-[9px] text-zinc-400">
+            <div className="absolute inset-0 bg-zinc-800 animate-pulse flex items-center justify-center font-pixel text-[9px] text-zinc-200">
               EXPLORING...
             </div>
           )}
@@ -94,7 +94,7 @@ export const PostCard = ({
       <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between">
         <div>
           {/* Metadata Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-mono text-zinc-700 mb-2">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-mono text-zinc-900 mb-2">
             <div className="flex items-center gap-1.5">
               {isPostRevealed ? (
                 <span className="mc-badge bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[9px] font-bold">
@@ -121,7 +121,7 @@ export const PostCard = ({
           {/* Content snippet */}
           {post.content && (
             <p
-              className={`mt-1.5 text-[11px] sm:text-xs text-zinc-700 leading-relaxed font-body transition-all duration-200 ${
+              className={`mt-1.5 text-[11px] sm:text-xs text-zinc-800 leading-relaxed font-body transition-all duration-200 ${
                 expanded ? 'whitespace-pre-wrap' : 'line-clamp-2'
               }`}
             >
@@ -149,13 +149,13 @@ export const PostCard = ({
           <button
             type="button"
             onClick={openOriginal}
-            className="text-[10px] font-mono text-zinc-700 hover:text-amber-700 underline flex items-center gap-1 cursor-pointer font-semibold transition-colors"
+            className="text-[10px] font-mono text-zinc-900 hover:text-amber-800 underline flex items-center gap-1 cursor-pointer font-semibold transition-colors"
           >
             <span>Original Post</span>
             <span>↗</span>
           </button>
 
-          <span className="text-[10px] font-mono font-bold text-zinc-700">
+          <span className="text-[10px] font-mono font-bold text-zinc-900">
             {selected ? 'SELECTED' : 'TAP TO SELECT'}
           </span>
         </div>
