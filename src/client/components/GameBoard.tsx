@@ -2,6 +2,7 @@
  * GameBoard Component - Main 2-stage game UI.
  */
 
+import { useState } from 'react';
 import { formatSubreddit } from '../../shared/gameTypes';
 import type {
   DisplaySubredditQuestion,
@@ -12,6 +13,7 @@ import type {
 } from '../../shared/gameTypes';
 import { useGame } from '../hooks/useGame';
 import { PostCard } from './PostCard';
+import { LoadingAnimation } from './LoadingAnimation';
 
 function isFullPuzzle(value: PublicPuzzle | Puzzle): value is Puzzle {
   return value.connection.theme !== '???';
@@ -23,6 +25,8 @@ function starText(starsEarned: number): string {
 }
 
 export const GameBoard = () => {
+  const [animationDone, setAnimationDone] = useState(false);
+
   const {
     puzzle,
     session,
@@ -34,6 +38,7 @@ export const GameBoard = () => {
     stage1Feedback,
     gameState,
     currentQuestion,
+    isModerator,
     togglePostSelection,
     clearSelection,
     submitStage1,
@@ -42,14 +47,12 @@ export const GameBoard = () => {
     reloadGame,
   } = useGame();
 
-  if (loading || (!puzzle && !error)) {
+  if (loading || !animationDone || (!puzzle && !error)) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading today's puzzle...</p>
-        </div>
-      </div>
+      <LoadingAnimation
+        durationMs={2400}
+        onComplete={() => setAnimationDone(true)}
+      />
     );
   }
 
@@ -101,7 +104,16 @@ export const GameBoard = () => {
         <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">Stage 1 of 2</p>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Find the connection</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Pick exactly 3 of the 5 posts that share a hidden theme. You get 2 attempts.
+          Pick exactly 3 of the 5 posts that share a hidden theme.{' '}
+          {isModerator ? (
+            <span className="font-semibold text-purple-600 dark:text-purple-400">
+              Moderator mode: unlimited attempts.
+            </span>
+          ) : (
+            <span>
+              You get 3 attempts ({Math.max(0, 3 - (session?.stage1Attempts ?? 0))} remaining).
+            </span>
+          )}
         </p>
       </div>
 
@@ -115,7 +127,9 @@ export const GameBoard = () => {
         >
           {stage1Feedback.failed
             ? `No attempts left. ${stage1Feedback.correctCount} of 3 posts were connected.`
-            : `${stage1Feedback.correctCount} of 3 posts were connected. Try again.`}
+            : isModerator
+              ? `${stage1Feedback.correctCount} of 3 posts were connected. Try again (Moderator: unlimited attempts).`
+              : `${stage1Feedback.correctCount} of 3 posts were connected. Try again (${Math.max(0, 3 - stage1Feedback.attempts)} attempts remaining).`}
         </div>
       )}
 

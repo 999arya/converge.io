@@ -522,6 +522,8 @@ function normalizeSession(stored: Partial<GameSession>, puzzleId: string): GameS
     completedAt: storedCompletedAt,
     score: stored.score,
     streak: stored.streak,
+    isModerator: typeof stored.isModerator === 'boolean' ? stored.isModerator : false,
+    maxAttempts: typeof stored.maxAttempts === 'number' ? stored.maxAttempts : 3,
   };
 }
 
@@ -597,7 +599,8 @@ function countCorrectSelectedPosts(puzzle: Puzzle, selectedPostIds: string[]): n
 export async function submitStage1(
   userId: string,
   puzzleId: string,
-  selectedPostIds: string[]
+  selectedPostIds: string[],
+  isModerator: boolean = false
 ): Promise<{
   success: boolean;
   correct: boolean;
@@ -608,6 +611,8 @@ export async function submitStage1(
     attempts: number;
     canRetry: boolean;
     failed: boolean;
+    maxAttempts: number;
+    isModerator: boolean;
   };
   session: GameSession;
 }> {
@@ -615,6 +620,10 @@ export async function submitStage1(
   if (!puzzle) throw new Error('Puzzle not found');
 
   const session = await readSession(userId, puzzleId);
+  session.isModerator = isModerator;
+  const maxAttempts = isModerator ? 999 : 3;
+  session.maxAttempts = maxAttempts;
+
   const correctCount = countCorrectSelectedPosts(puzzle, selectedPostIds);
 
   if (session.stage1Correct) {
@@ -623,18 +632,32 @@ export async function submitStage1(
       correct: true,
       attempts: session.stage1Attempts,
       correctCount: 3,
-      feedback: { correctCount: 3, attempts: session.stage1Attempts, canRetry: false, failed: false },
+      feedback: {
+        correctCount: 3,
+        attempts: session.stage1Attempts,
+        canRetry: false,
+        failed: false,
+        maxAttempts,
+        isModerator,
+      },
       session,
     };
   }
 
-  if (session.stage1Attempts >= 2) {
+  if (!isModerator && session.stage1Attempts >= maxAttempts) {
     return {
       success: false,
       correct: false,
       attempts: session.stage1Attempts,
       correctCount,
-      feedback: { correctCount, attempts: session.stage1Attempts, canRetry: false, failed: true },
+      feedback: {
+        correctCount,
+        attempts: session.stage1Attempts,
+        canRetry: false,
+        failed: true,
+        maxAttempts,
+        isModerator,
+      },
       session,
     };
   }
@@ -653,12 +676,19 @@ export async function submitStage1(
       correct: true,
       attempts: session.stage1Attempts,
       correctCount,
-      feedback: { correctCount, attempts: session.stage1Attempts, canRetry: false, failed: false },
+      feedback: {
+        correctCount,
+        attempts: session.stage1Attempts,
+        canRetry: false,
+        failed: false,
+        maxAttempts,
+        isModerator,
+      },
       session,
     };
   }
 
-  const failed = session.stage1Attempts >= 2;
+  const failed = !isModerator && session.stage1Attempts >= maxAttempts;
   session.stage = failed ? 'STAGE_1_FAILED' : 'STAGE_1_SECOND_CHANCE';
   await saveSession(userId, session);
   return {
@@ -666,7 +696,14 @@ export async function submitStage1(
     correct: false,
     attempts: session.stage1Attempts,
     correctCount,
-    feedback: { correctCount, attempts: session.stage1Attempts, canRetry: !failed, failed },
+    feedback: {
+      correctCount,
+      attempts: session.stage1Attempts,
+      canRetry: isModerator || !failed,
+      failed,
+      maxAttempts,
+      isModerator,
+    },
     session,
   };
 }
@@ -798,7 +835,9 @@ export async function calculateScore(userId: string, puzzleId: string): Promise<
     };
   }
 
-  const stage1Finished = session.stage === 'STAGE_1_FAILED' || session.stage1Attempts >= 2;
+  const stage1Finished =
+    session.stage === 'STAGE_1_FAILED' ||
+    (!session.isModerator && session.stage1Attempts >= 3);
   if (!session.stage1Correct && !stage1Finished) {
     throw new Error('Stage 1 is still in progress');
   }

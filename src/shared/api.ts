@@ -40,6 +40,8 @@ export type GetPuzzleResponse = {
   streak: number;
   totalCompleted: number;
   flairTier: string;
+  isModerator?: boolean;
+  maxAttempts?: number;
 };
 
 export type Stage1Request = {
@@ -52,6 +54,8 @@ export type Stage1Feedback = {
   attempts: number;
   canRetry: boolean;
   failed: boolean;
+  maxAttempts?: number;
+  isModerator?: boolean;
 };
 
 export type Stage1Response = {

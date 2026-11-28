@@ -92,6 +92,8 @@ export type GameSession = {
   completedAt?: number;
   score?: GameScore;
   streak?: number;
+  isModerator?: boolean;
+  maxAttempts?: number;
 };
 
 export type GameScore = {

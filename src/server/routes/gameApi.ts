@@ -3,7 +3,7 @@
  */
 
 import { Hono } from 'hono';
-import { context } from '@devvit/web/server';
+import { context, reddit } from '@devvit/web/server';
 import type {
   ErrorResponse,
   FinalizeRequest,
@@ -40,6 +40,33 @@ function requireContext(): { userId: string; postId: string } | null {
   return { postId, userId };
 }
 
+async function isModeratorUser(userId: string): Promise<boolean> {
+  try {
+    const ctx = context as Record<string, unknown>;
+    if (ctx.isModerator === true || ctx.userRole === 'moderator' || ctx.userRole === 'admin') {
+      return true;
+    }
+    if (ctx.subredditName && typeof ctx.subredditName === 'string' && reddit?.getModerators) {
+      const username = await reddit.getCurrentUsername();
+      if (username) {
+        const moderators = await reddit.getModerators({ subredditName: ctx.subredditName }).all();
+        if (
+          moderators.some(
+            (m) =>
+              (m.username && m.username.toLowerCase() === username.toLowerCase()) ||
+              m.id === userId
+          )
+        ) {
+          return true;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Moderator check error:', error);
+  }
+  return false;
+}
+
 gameApi.get('/puzzle', async (c) => {
   const auth = requireContext();
   if (!auth) {
@@ -60,7 +87,12 @@ gameApi.get('/puzzle', async (c) => {
       );
     }
 
+    const isModerator = await isModeratorUser(auth.userId);
     const { session } = await getSession(auth.userId, puzzleId);
+    if (session) {
+      session.isModerator = isModerator;
+      session.maxAttempts = isModerator ? 999 : 3;
+    }
     const progress = await getStreak(auth.userId);
 
     const safePosts: PublicPuzzlePost[] = puzzle.posts.map((post) => ({
@@ -95,6 +127,8 @@ gameApi.get('/puzzle', async (c) => {
       streak: progress.streak,
       totalCompleted: progress.totalCompleted,
       flairTier: progress.flairTier,
+      isModerator,
+      maxAttempts: isModerator ? 999 : 3,
     });
   } catch (error) {
     console.error('Get puzzle error:', error);
@@ -130,7 +164,8 @@ gameApi.post('/stage1', async (c) => {
       );
     }
 
-    const result = await submitStage1(auth.userId, puzzleId, selectedPostIds);
+    const isModerator = await isModeratorUser(auth.userId);
+    const result = await submitStage1(auth.userId, puzzleId, selectedPostIds, isModerator);
     return c.json<Stage1Response>({
       success: result.success,
       correct: result.correct,

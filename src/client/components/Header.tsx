@@ -5,7 +5,7 @@
 import { useGame } from '../hooks/useGame';
 
 export const Header = () => {
-  const { streak, totalCompleted, flairTier } = useGame();
+  const { streak, totalCompleted, flairTier, isModerator } = useGame();
 
   return (
     <header className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
@@ -17,7 +17,14 @@ export const Header = () => {
           △
         </div>
         <div>
-          <h1 className="font-bold text-xl text-gray-900 dark:text-white">Converge</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-bold text-xl text-gray-900 dark:text-white">Converge</h1>
+            {isModerator && (
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                Mod
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-500 dark:text-gray-400">{flairTier}</p>
         </div>
       </div>

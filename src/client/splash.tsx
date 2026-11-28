@@ -105,8 +105,16 @@ export const Splash = () => {
           {posts.length > 0 ? (
             posts.map((post) => <SplashPost key={post.id} post={post} />)
           ) : (
-            <div className="col-span-full flex items-center justify-center h-24 text-xs text-gray-500 dark:text-gray-400">
-              Loading today’s posts…
+            <div className="col-span-full flex flex-col items-center justify-center h-28 gap-2">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold animate-pulse"
+                style={{ background: 'linear-gradient(135deg, #3b82f6, #a855f7)' }}
+              >
+                △
+              </div>
+              <p className="text-xs font-medium animate-converge-shimmer">
+                Converging today’s posts…
+              </p>
             </div>
           )}
         </div>

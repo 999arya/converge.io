@@ -28,6 +28,8 @@ type GameStateData = {
   streak: number;
   totalCompleted: number;
   flairTier: string;
+  isModerator: boolean;
+  maxAttempts: number;
   loading: boolean;
   submitting: boolean;
   error: string | null;
@@ -42,6 +44,8 @@ const INITIAL_STATE: GameStateData = {
   streak: 0,
   totalCompleted: 0,
   flairTier: 'Novice',
+  isModerator: false,
+  maxAttempts: 3,
   loading: true,
   submitting: false,
   error: null,
@@ -55,8 +59,12 @@ function deriveGameState(session: GameSession | null, loading: boolean): GameSta
   if (session.stage === 'RESULTS' || session.stage2Answers.length >= 3) return 'RESULTS';
 
   if (!session.stage1Correct) {
-    if (session.stage === 'STAGE_1_FAILED' || session.stage1Attempts >= 2) return 'STAGE_1_FAILED';
-    if (session.stage === 'STAGE_1_SECOND_CHANCE' || session.stage1Attempts === 1) {
+    const isMod = session.isModerator === true;
+    const maxAttempts = isMod ? Infinity : (session.maxAttempts ?? 3);
+    if (session.stage === 'STAGE_1_FAILED' || (!isMod && session.stage1Attempts >= maxAttempts)) {
+      return 'STAGE_1_FAILED';
+    }
+    if (session.stage === 'STAGE_1_SECOND_CHANCE' || session.stage1Attempts > 0) {
       return 'STAGE_1_SECOND_CHANCE';
     }
     return 'STAGE_1_READY';
@@ -111,6 +119,13 @@ export const useGame = () => {
         }
       }
 
+      const isModerator = Boolean(data.isModerator ?? activeSession?.isModerator);
+      const maxAttempts = isModerator ? 999 : (data.maxAttempts ?? activeSession?.maxAttempts ?? 3);
+      if (activeSession) {
+        activeSession.isModerator = isModerator;
+        activeSession.maxAttempts = maxAttempts;
+      }
+
       setState((prev) => ({
         ...prev,
         puzzle: activePuzzle,
@@ -119,6 +134,8 @@ export const useGame = () => {
         streak: data.streak,
         totalCompleted: data.totalCompleted,
         flairTier: data.flairTier,
+        isModerator,
+        maxAttempts,
         selectedPostIds: activeSession?.selectedPostIds ?? [],
         loading: false,
         error: null,
@@ -321,6 +338,8 @@ export const useGame = () => {
     streak: state.streak,
     totalCompleted: state.totalCompleted,
     flairTier: state.flairTier,
+    isModerator: state.isModerator,
+    maxAttempts: state.maxAttempts,
     loading: state.loading,
     submitting: state.submitting,
     error: state.error,
