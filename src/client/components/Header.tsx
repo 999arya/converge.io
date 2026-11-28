@@ -12,6 +12,9 @@ export const Header = () => {
   const [muted, setMuted] = useState(() => sounds.getMuted());
 
   const handleToggleSound = () => {
+    if (!muted) {
+      sounds.playClick();
+    }
     const nextMuted = sounds.toggleMute();
     setMuted(nextMuted);
     if (!nextMuted) {
@@ -60,7 +63,7 @@ export const Header = () => {
                 {displayDate}
               </span>
             </div>
-            <p className="text-[10px] font-mono text-zinc-600">
+            <p className="text-[10px] font-mono text-zinc-700">
               DAILY REDDIT PUZZLE
             </p>
           </div>

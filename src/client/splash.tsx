@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client';
 import { navigateTo, requestExpandedMode } from '@devvit/web/client';
 import type { GetPuzzleResponse } from '../shared/api';
 import type { GameScore, PublicGameSession, PublicPuzzlePost } from '../shared/gameTypes';
+import { PixelForest } from './components/PixelArt';
 import { sounds } from './utils/sound';
 
 type SplashPostProps = {
@@ -33,14 +34,14 @@ const SplashPost = ({ post, index }: SplashPostProps) => {
             onError={() => setImageFailed(true)}
           />
         ) : (
-          <span className="font-pixel text-[10px] text-amber-600 font-bold">#{index + 1}</span>
+          <span className="font-pixel text-[10px] text-amber-800 font-bold">#{index + 1}</span>
         )}
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-bold text-zinc-950 line-clamp-1 leading-snug">
           {post.title}
         </p>
-        <p className="text-[10px] font-mono text-zinc-600 truncate mt-0.5">
+        <p className="text-[10px] font-mono text-zinc-700 truncate mt-0.5">
           u/{post.author} · ↑ {post.score.toLocaleString()}
         </p>
       </div>
@@ -124,24 +125,26 @@ export const Splash = () => {
         </div>
       </div>
 
+      <PixelForest className="mc-card mb-2.5 h-10 w-full" />
+
       {/* Player Stats HUD */}
       <div className="grid grid-cols-4 gap-1.5 mb-2.5 text-center">
         <div className="mc-card bg-white p-1.5">
-          <p className="text-[9px] font-mono text-zinc-500 uppercase">Streak</p>
-          <p className="font-pixel text-[11px] text-amber-600 font-bold mt-0.5">🔥{streak}</p>
+          <p className="text-[9px] font-mono text-zinc-700 uppercase">Streak</p>
+          <p className="font-pixel text-[11px] text-amber-800 font-bold mt-0.5">🔥{streak}</p>
         </div>
         <div className="mc-card bg-white p-1.5">
-          <p className="text-[9px] font-mono text-zinc-500 uppercase">Stars</p>
-          <p className="font-pixel text-[11px] text-amber-500 font-bold mt-0.5">⭐{lifetimeStars}</p>
+          <p className="text-[9px] font-mono text-zinc-700 uppercase">Stars</p>
+          <p className="font-pixel text-[11px] text-amber-700 font-bold mt-0.5">⭐{lifetimeStars}</p>
         </div>
         <div className="mc-card bg-white p-1.5">
-          <p className="text-[9px] font-mono text-zinc-500 uppercase">Solved</p>
-          <p className="font-pixel text-[11px] text-emerald-600 font-bold mt-0.5">
+          <p className="text-[9px] font-mono text-zinc-700 uppercase">Solved</p>
+          <p className="font-pixel text-[11px] text-emerald-700 font-bold mt-0.5">
             {totalCompleted}
           </p>
         </div>
         <div className="mc-card bg-white p-1.5">
-          <p className="text-[9px] font-mono text-zinc-500 uppercase">Tier</p>
+          <p className="text-[9px] font-mono text-zinc-700 uppercase">Tier</p>
           <p className="font-pixel text-[8px] text-purple-700 font-bold mt-1 truncate">
             {flairTier}
           </p>
@@ -155,7 +158,7 @@ export const Splash = () => {
             <div className="inline-block mc-badge bg-emerald-600 text-white text-[9px] px-2.5 py-1 mb-2 font-pixel">
               TODAY'S QUEST COMPLETED
             </div>
-            <div className="text-3xl my-2 text-amber-500 drop-shadow-[2px_2px_0_#000]">
+            <div className="text-3xl my-2 text-amber-700 drop-shadow-[2px_2px_0_#000]">
               {'★'.repeat(completedScore?.starsEarned ?? 0)}
               {'☆'.repeat(3 - (completedScore?.starsEarned ?? 0))}
             </div>
@@ -164,7 +167,7 @@ export const Splash = () => {
                 ? '✨ You conquered the daily connection!'
                 : 'Connection missed for today.'}
             </p>
-            <p className="text-[11px] font-mono text-zinc-600 mt-1">
+            <p className="text-[11px] font-mono text-zinc-700 mt-1">
               {completedScore?.correctSubredditGuesses ?? 0} of 3 subreddits identified.
             </p>
           </div>
@@ -186,7 +189,7 @@ export const Splash = () => {
             </div>
 
             {loading ? (
-              <div className="mc-card bg-white p-5 text-center text-xs text-zinc-600 font-mono">
+              <div className="mc-card bg-white p-5 text-center text-xs text-zinc-700 font-mono">
                 Loading today's challenge...
               </div>
             ) : (
@@ -219,11 +222,14 @@ export const Splash = () => {
       </div>
 
       {/* Footer Navigation */}
-      <footer className="mt-2 flex items-center justify-center gap-3 text-[10px] font-mono text-zinc-600">
+      <footer className="mt-2 flex items-center justify-center gap-3 text-[10px] font-mono text-zinc-700">
         <button
           type="button"
           className="hover:text-amber-700 underline cursor-pointer"
-          onClick={() => navigateTo('https://developers.reddit.com/docs')}
+          onClick={() => {
+            sounds.playClick();
+            navigateTo('https://developers.reddit.com/docs');
+          }}
         >
           Devvit Docs
         </button>
@@ -231,7 +237,10 @@ export const Splash = () => {
         <button
           type="button"
           className="hover:text-amber-700 underline cursor-pointer"
-          onClick={() => navigateTo('https://www.reddit.com/r/Devvit')}
+          onClick={() => {
+            sounds.playClick();
+            navigateTo('https://www.reddit.com/r/Devvit');
+          }}
         >
           r/Devvit
         </button>

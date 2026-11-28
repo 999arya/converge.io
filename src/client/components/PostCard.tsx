@@ -85,7 +85,7 @@ export const PostCard = ({
       <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between">
         <div>
           {/* Metadata Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-mono text-zinc-600 mb-2">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-mono text-zinc-700 mb-2">
             <div className="flex items-center gap-1.5">
               {isPostRevealed ? (
                 <span className="mc-badge bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[9px] font-bold">
@@ -125,6 +125,7 @@ export const PostCard = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
+                sounds.playClick();
                 setExpanded((prev) => !prev);
               }}
               className="mt-1 text-[10px] font-mono font-bold text-emerald-700 hover:underline cursor-pointer"
@@ -139,13 +140,13 @@ export const PostCard = ({
           <button
             type="button"
             onClick={openOriginal}
-            className="text-[10px] font-mono text-zinc-600 hover:text-amber-700 underline flex items-center gap-1 cursor-pointer font-semibold"
+            className="text-[10px] font-mono text-zinc-700 hover:text-amber-700 underline flex items-center gap-1 cursor-pointer font-semibold"
           >
             <span>Original Post</span>
             <span>↗</span>
           </button>
 
-          <span className="text-[10px] font-mono font-bold text-zinc-500">
+          <span className="text-[10px] font-mono font-bold text-zinc-700">
             {selected ? 'SELECTED' : 'TAP TO SELECT'}
           </span>
         </div>

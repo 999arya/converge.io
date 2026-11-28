@@ -16,6 +16,10 @@ html, body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
+.pixel-art {
+  image-rendering: pixelated;
+}
+
 /* Line clamp utilities */
 .line-clamp-1 {
   display: -webkit-box;

@@ -1,11 +1,13 @@
 /**
  * Retro 8-bit Web Audio Sound Synthesizer
  * Plays crunchy Minecraft/retro arcade sound effects with 0 external asset loading.
+ * A quiet chiptune bed starts on the first click and follows the mute toggle.
  */
 
 class SoundEffects {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
+  private ambientGain: GainNode | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -16,20 +18,70 @@ class SoundEffects {
 
   private getContext(): AudioContext | null {
     if (this.isMuted) return null;
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined' || !window.AudioContext) return null;
 
     if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioCtx) {
-        this.ctx = new AudioCtx();
-      }
+      this.ctx = new window.AudioContext();
     }
 
-    if (this.ctx && this.ctx.state === 'suspended') {
+    if (this.ctx.state === 'suspended') {
       void this.ctx.resume();
     }
 
     return this.ctx;
+  }
+
+  /** Every sound call also starts the looping background bed after a user gesture. */
+  private getSoundContext(): AudioContext | null {
+    const ctx = this.getContext();
+    if (ctx) {
+      this.startAmbience(ctx);
+    }
+    return ctx;
+  }
+
+  private startAmbience(ctx: AudioContext): void {
+    if (this.isMuted || this.ambientGain) return;
+
+    try {
+      const gain = ctx.createGain();
+      gain.gain.value = 0.022;
+      gain.connect(ctx.destination);
+
+      const noteDurationSeconds = 0.5;
+      const notes = [
+        130.81, 164.81, 196, 164.81, 146.83, 174.61, 220, 174.61,
+        130.81, 164.81, 196, 246.94, 146.83, 174.61, 196, 174.61,
+      ];
+      const samplesPerNote = Math.floor(ctx.sampleRate * noteDurationSeconds);
+      const buffer = ctx.createBuffer(
+        1,
+        samplesPerNote * notes.length,
+        ctx.sampleRate
+      );
+      const samples = buffer.getChannelData(0);
+
+      for (let i = 0; i < samples.length; i += 1) {
+        const frequency = notes[Math.floor(i / samplesPerNote) % notes.length] ?? 130.81;
+        const localTime = (i % samplesPerNote) / ctx.sampleRate;
+        const attack = Math.min(1, localTime / 0.02);
+        const release = Math.min(1, (noteDurationSeconds - localTime) / 0.08);
+        const envelope = Math.max(0, Math.min(attack, release));
+        const fundamental = Math.sin(2 * Math.PI * frequency * localTime);
+        const harmonic = Math.sin(4 * Math.PI * frequency * localTime) * 0.18;
+        samples[i] = envelope * (fundamental + harmonic) * 0.5;
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(gain);
+      source.start();
+
+      this.ambientGain = gain;
+    } catch {
+      // Ambient audio is optional if Web Audio is unavailable.
+    }
   }
 
   public toggleMute(): boolean {
@@ -37,6 +89,13 @@ class SoundEffects {
     if (typeof window !== 'undefined') {
       localStorage.setItem('converge_sound_muted', this.isMuted.toString());
     }
+
+    if (this.ambientGain && this.ctx) {
+      const now = this.ctx.currentTime;
+      this.ambientGain.gain.cancelScheduledValues(now);
+      this.ambientGain.gain.setTargetAtTime(this.isMuted ? 0 : 0.022, now, 0.03);
+    }
+
     return this.isMuted;
   }
 
@@ -45,7 +104,7 @@ class SoundEffects {
   }
 
   public playClick(): void {
-    const ctx = this.getContext();
+    const ctx = this.getSoundContext();
     if (!ctx) return;
 
     try {
@@ -69,7 +128,7 @@ class SoundEffects {
   }
 
   public playSelect(): void {
-    const ctx = this.getContext();
+    const ctx = this.getSoundContext();
     if (!ctx) return;
 
     try {
@@ -93,7 +152,7 @@ class SoundEffects {
   }
 
   public playDeselect(): void {
-    const ctx = this.getContext();
+    const ctx = this.getSoundContext();
     if (!ctx) return;
 
     try {
@@ -117,7 +176,7 @@ class SoundEffects {
   }
 
   public playSuccess(): void {
-    const ctx = this.getContext();
+    const ctx = this.getSoundContext();
     if (!ctx) return;
 
     try {
@@ -145,7 +204,7 @@ class SoundEffects {
   }
 
   public playError(): void {
-    const ctx = this.getContext();
+    const ctx = this.getSoundContext();
     if (!ctx) return;
 
     try {
@@ -169,7 +228,7 @@ class SoundEffects {
   }
 
   public playWinFanfare(): void {
-    const ctx = this.getContext();
+    const ctx = this.getSoundContext();
     if (!ctx) return;
 
     try {

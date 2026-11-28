@@ -20,6 +20,7 @@ import type {
   PuzzlePost,
 } from '../../shared/gameTypes';
 import { useGame } from '../hooks/useGame';
+import { PixelForest } from './PixelArt';
 import { PostCard } from './PostCard';
 import { sounds } from '../utils/sound';
 
@@ -31,6 +32,7 @@ function isFullPuzzle(value: PublicPuzzle | Puzzle): value is Puzzle {
 const ArcadeLoader = () => (
   <div className="arcade-loader fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#071426] text-white">
     <div className="arcade-loader-tiles" aria-hidden="true" />
+    <PixelForest className="absolute inset-x-0 bottom-0 z-0 h-24 opacity-90" dark />
     <div className="relative z-10 flex flex-col items-center px-6 text-center">
       <div className="arcade-loader-logo mb-6 flex h-24 w-24 items-center justify-center border-4 border-[#FFC247] bg-[#050505] font-pixel text-4xl font-black text-[#FFC247] shadow-[8px_8px_0_#FF4B18]">
         C
@@ -92,12 +94,15 @@ export const GameBoard = () => {
           <h2 className="font-pixel text-sm text-red-600 mb-2 uppercase">
             World Error
           </h2>
-          <p className="text-xs font-mono text-zinc-600 mb-5">
+          <p className="text-xs font-mono text-zinc-700 mb-5">
             {error ?? 'Puzzle data unavailable. Please reconnect.'}
           </p>
           <button
             type="button"
-            onClick={() => void reloadGame()}
+            onClick={() => {
+              sounds.playClick();
+              void reloadGame();
+            }}
             className="mc-btn mc-btn-gold px-6 py-2.5 text-xs uppercase"
           >
             Respawn Challenge ➔
@@ -132,6 +137,7 @@ export const GameBoard = () => {
           await submitStage2(postId, subreddit);
         }}
         onFinalize={() => {
+          sounds.playClick();
           sounds.playWinFanfare();
           void finalizeGame();
         }}
@@ -187,6 +193,8 @@ export const GameBoard = () => {
           </button>
         )}
       </div>
+
+      <PixelForest className="mc-card mb-4 h-14 w-full" />
 
       {/* Clue Scroll Drawer / Modal */}
       {hintOpen && puzzle.connection.hint && (
@@ -293,7 +301,7 @@ export const GameBoard = () => {
                         </span>
                       </div>
                     ) : (
-                      <span className="font-pixel text-[10px] text-zinc-400">
+                      <span className="font-pixel text-[10px] text-zinc-700">
                         {slotIdx + 1}
                       </span>
                     )}
@@ -309,7 +317,7 @@ export const GameBoard = () => {
                     clearSelection();
                   }}
                   disabled={submitting}
-                  className="text-[10px] font-mono text-zinc-600 hover:text-zinc-950 underline ml-2 font-bold cursor-pointer"
+                  className="text-[10px] font-mono text-zinc-700 hover:text-zinc-950 underline ml-2 font-bold cursor-pointer"
                 >
                   Clear
                 </button>
@@ -437,6 +445,8 @@ const StageTwo = ({
         </div>
       </div>
 
+      <PixelForest className="mc-card mb-4 h-14 w-full" />
+
       {error && (
         <div className="mc-card bg-red-100 border-red-600 text-red-900 p-3 text-xs font-mono font-bold mb-4">
           ⚠️ {error}
@@ -456,7 +466,7 @@ const StageTwo = ({
                   Artifact #{index + 1}
                 </span>
                 {post && (
-                  <span className="text-[10px] font-mono text-zinc-600 font-bold">
+                  <span className="text-[10px] font-mono text-zinc-700 font-bold">
                     u/{post.author} · ↑ {post.score.toLocaleString()}
                   </span>
                 )}
@@ -543,7 +553,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
   if (!isFullPuzzle(puzzle)) {
     return (
       <div className="mc-card bg-white p-8 text-center my-8 max-w-md mx-auto">
-        <p className="font-pixel text-xs text-amber-600 uppercase">Deciphering Lore...</p>
+        <p className="font-pixel text-xs text-amber-800 uppercase">Deciphering Lore...</p>
       </div>
     );
   }
@@ -592,7 +602,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
                 className={`w-12 h-12 sm:w-16 sm:h-16 mc-card flex items-center justify-center text-2xl sm:text-3xl font-black animate-star-pop ${
                   isEarned
                     ? 'bg-amber-300 text-zinc-950 border-zinc-950'
-                    : 'bg-zinc-200 text-zinc-400 border-zinc-500'
+                    : 'bg-zinc-200 text-zinc-700 border-zinc-500'
                 }`}
                 style={{ animationDelay: `${starIdx * 150}ms` }}
               >
@@ -625,24 +635,26 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
         </div>
       </div>
 
+      <PixelForest className="mc-card mb-4 h-12 w-full" />
+
       {/* Player Stats HUD */}
       <div className="grid grid-cols-4 gap-2 mb-4 text-center">
         <div className="mc-card bg-white p-2.5">
-          <p className="text-[9px] font-mono text-zinc-500 uppercase">Streak</p>
-          <p className="font-pixel text-xs text-amber-600 font-bold mt-1">🔥 {score.streak}</p>
+          <p className="text-[9px] font-mono text-zinc-700 uppercase">Streak</p>
+          <p className="font-pixel text-xs text-amber-800 font-bold mt-1">🔥 {score.streak}</p>
         </div>
         <div className="mc-card bg-white p-2.5">
-          <p className="text-[9px] font-mono text-zinc-500 uppercase">Total Stars</p>
-          <p className="font-pixel text-xs text-amber-500 font-bold mt-1">⭐ {score.lifetimeStars}</p>
+          <p className="text-[9px] font-mono text-zinc-700 uppercase">Total Stars</p>
+          <p className="font-pixel text-xs text-amber-700 font-bold mt-1">⭐ {score.lifetimeStars}</p>
         </div>
         <div className="mc-card bg-white p-2.5">
-          <p className="text-[9px] font-mono text-zinc-500 uppercase">Solved</p>
-          <p className="font-pixel text-xs text-emerald-600 font-bold mt-1">
+          <p className="text-[9px] font-mono text-zinc-700 uppercase">Solved</p>
+          <p className="font-pixel text-xs text-emerald-700 font-bold mt-1">
             {score.totalCompleted}
           </p>
         </div>
         <div className="mc-card bg-white p-2.5">
-          <p className="text-[9px] font-mono text-zinc-500 uppercase">Tier</p>
+          <p className="text-[9px] font-mono text-zinc-700 uppercase">Tier</p>
           <p className="font-pixel text-[8px] sm:text-[9px] text-purple-700 font-bold mt-1 truncate">
             {score.flairTier}
           </p>
@@ -715,7 +727,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
                     <h5 className="font-bold text-xs sm:text-sm text-zinc-950">
                       {post.title}
                     </h5>
-                    <p className="text-[11px] font-mono text-zinc-600 mt-0.5">
+                    <p className="text-[11px] font-mono text-zinc-700 mt-0.5">
                       u/{post.author} · ↑ {post.score.toLocaleString()}
                     </p>
                   </div>
@@ -723,7 +735,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
                   {/* Subreddit Comparison */}
                   <div className="mc-slot p-3 bg-zinc-50 text-xs font-mono space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-600">Correct Subreddit:</span>
+                      <span className="text-zinc-700">Correct Subreddit:</span>
                       <span className="text-emerald-700 font-bold">
                         {formatSubreddit(correctSubreddit)}
                       </span>
@@ -731,7 +743,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
 
                     {answer && (
                       <div className="flex items-center justify-between">
-                        <span className="text-zinc-600">Your Answer:</span>
+                        <span className="text-zinc-700">Your Answer:</span>
                         <span
                           className={`font-bold ${wasCorrect ? 'text-emerald-700' : 'text-red-600'}`}
                         >
@@ -751,11 +763,12 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
                   <div className="flex items-center justify-between pt-1 text-[11px] font-mono">
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        sounds.playClick();
                         navigateTo(
                           `https://www.reddit.com/${question?.correctSubreddit ?? post.subreddit}`
-                        )
-                      }
+                        );
+                      }}
                       className="text-amber-700 hover:underline font-bold cursor-pointer"
                     >
                       Visit {question?.correctSubreddit ?? post.subreddit} ↗
@@ -763,8 +776,11 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
 
                     <button
                       type="button"
-                      onClick={() => navigateTo(`https://www.reddit.com${post.permalink}`)}
-                      className="text-zinc-600 hover:underline cursor-pointer"
+                      onClick={() => {
+                        sounds.playClick();
+                        navigateTo(`https://www.reddit.com${post.permalink}`);
+                      }}
+                      className="text-zinc-700 hover:underline cursor-pointer"
                     >
                       View Original Post ↗
                     </button>
@@ -778,7 +794,7 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
         /* Discovery Collection (Codex) */
         <div className="space-y-3">
           <div className="mc-card bg-white p-4">
-            <h4 className="font-pixel text-xs text-amber-600 uppercase mb-1">
+            <h4 className="font-pixel text-xs text-amber-800 uppercase mb-1">
               Community Biome Codex
             </h4>
             <p className="text-xs font-mono text-zinc-700 mb-4">
@@ -807,9 +823,10 @@ const ResultsScreen = ({ puzzle, session, score, onReplay }: ResultsScreenProps)
                     )}
                     <button
                       type="button"
-                      onClick={() =>
-                        navigateTo(`https://www.reddit.com/${subQuestion.correctSubreddit}`)
-                      }
+                      onClick={() => {
+                        sounds.playClick();
+                        navigateTo(`https://www.reddit.com/${subQuestion.correctSubreddit}`);
+                      }}
                       className="text-[11px] font-mono text-amber-700 hover:underline self-start font-bold cursor-pointer"
                     >
                       Explore {formatSubreddit(subQuestion.correctSubreddit)} ➔
