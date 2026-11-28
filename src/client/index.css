@@ -367,40 +367,41 @@ html, body {
   animation: bird-wing-down-step 0.32s steps(1) infinite;
 }
 
-/* Horizontal Bird Flight Paths across background */
+/* Horizontal Bird Flight Paths across background.
+   `translate` is used so it does not fight the vertical bob transform. */
 @keyframes bird-fly-ltr-1 {
   0% {
-    transform: translate3d(-10vw, 0, 0);
+    translate: -10vw 0;
   }
   100% {
-    transform: translate3d(115vw, 0, 0);
+    translate: 115vw 0;
   }
 }
 
 @keyframes bird-fly-ltr-2 {
   0% {
-    transform: translate3d(-14vw, 0, 0);
+    translate: -14vw 0;
   }
   100% {
-    transform: translate3d(115vw, 0, 0);
+    translate: 115vw 0;
   }
 }
 
 @keyframes bird-fly-ltr-3 {
   0% {
-    transform: translate3d(-18vw, 0, 0);
+    translate: -18vw 0;
   }
   100% {
-    transform: translate3d(115vw, 0, 0);
+    translate: 115vw 0;
   }
 }
 
-@keyframes bird-fly-rtl {
+@keyframes bird-fly-ltr-4 {
   0% {
-    transform: translate3d(115vw, 0, 0);
+    translate: -22vw 0;
   }
   100% {
-    transform: translate3d(-15vw, 0, 0);
+    translate: 115vw 0;
   }
 }
 
@@ -416,10 +417,10 @@ html, body {
 /* In-banner local bird flight */
 @keyframes bird-fly-banner {
   0% {
-    transform: translate3d(-20px, 0, 0);
+    translate: -20px 0;
   }
   100% {
-    transform: translate3d(180px, 0, 0);
+    translate: 180px 0;
   }
 }
 

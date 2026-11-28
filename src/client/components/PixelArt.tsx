@@ -116,14 +116,20 @@ type CloudTone = 'highlight' | 'top' | 'mid' | 'shadow';
 type CloudColors = Record<CloudTone | 'outline', string>;
 
 const CLOUD_ROWS: { y: number; x: number; width: number; tone: CloudTone }[] = [
-  { y: 4, x: 18, width: 8, tone: 'highlight' },
-  { y: 6, x: 14, width: 16, tone: 'highlight' },
-  { y: 8, x: 10, width: 24, tone: 'top' },
-  { y: 10, x: 6, width: 32, tone: 'top' },
-  { y: 12, x: 4, width: 36, tone: 'mid' },
-  { y: 14, x: 2, width: 42, tone: 'mid' },
-  { y: 16, x: 2, width: 42, tone: 'shadow' },
-  { y: 18, x: 6, width: 34, tone: 'shadow' },
+  { y: 8, x: 36, width: 16, tone: 'highlight' },
+  { y: 10, x: 32, width: 24, tone: 'highlight' },
+  { y: 12, x: 28, width: 32, tone: 'highlight' },
+  { y: 14, x: 24, width: 40, tone: 'top' },
+  { y: 16, x: 20, width: 48, tone: 'top' },
+  { y: 18, x: 16, width: 56, tone: 'top' },
+  { y: 20, x: 12, width: 64, tone: 'mid' },
+  { y: 22, x: 8, width: 72, tone: 'mid' },
+  { y: 24, x: 6, width: 76, tone: 'mid' },
+  { y: 26, x: 4, width: 80, tone: 'mid' },
+  { y: 28, x: 4, width: 80, tone: 'shadow' },
+  { y: 30, x: 6, width: 76, tone: 'shadow' },
+  { y: 32, x: 8, width: 72, tone: 'shadow' },
+  { y: 34, x: 12, width: 64, tone: 'shadow' },
 ];
 
 const LIGHT_CLOUD_COLORS: CloudColors = {
@@ -199,7 +205,7 @@ const PixelCloudGlyph = ({ x, y, scale = 1, dark = false }: PixelCloudGlyphProps
           x={row.x - 1}
           y={row.y - 1}
           width={row.width + 2}
-          height="4"
+          height="2"
           fill={colors.outline}
         />
       ))}
@@ -210,15 +216,15 @@ const PixelCloudGlyph = ({ x, y, scale = 1, dark = false }: PixelCloudGlyphProps
           x={row.x}
           y={row.y}
           width={row.width}
-          height="2"
+          height="1"
           fill={colors[row.tone]}
         />
       ))}
-      <rect x="20" y="5" width="6" height="2" fill={colors.highlight} />
-      <rect x="12" y="9" width="6" height="2" fill={colors.highlight} />
-      <rect x="28" y="11" width="6" height="2" fill={colors.highlight} />
-      <rect x="8" y="15" width="8" height="2" fill={colors.shadow} />
-      <rect x="30" y="17" width="8" height="2" fill={colors.shadow} />
+      <rect x="42" y="10" width="12" height="2" fill={colors.highlight} />
+      <rect x="24" y="14" width="12" height="2" fill={colors.highlight} />
+      <rect x="56" y="18" width="12" height="2" fill={colors.highlight} />
+      <rect x="16" y="28" width="16" height="2" fill={colors.shadow} />
+      <rect x="60" y="30" width="16" height="2" fill={colors.shadow} />
     </g>
   );
 };
@@ -227,7 +233,7 @@ const PixelCloudGlyph = ({ x, y, scale = 1, dark = false }: PixelCloudGlyphProps
 export const PixelCloud = ({ className, dark = false }: PixelCloudProps) => (
   <div className={`pixel-art pointer-events-none select-none inline-block ${className ?? ''}`}>
     <svg
-      viewBox="0 0 48 24"
+      viewBox="0 0 96 48"
       shapeRendering="crispEdges"
       className="h-full w-full overflow-visible"
     >
@@ -295,8 +301,8 @@ export const PixelForest = ({ className, dark = false }: PixelForestProps) => {
         className="h-full w-full"
       >
         <rect x="0" y="0" width="160" height="40" fill={sky} />
-        <PixelCloudGlyph x={8} y={2} scale={0.78} dark={dark} />
-        <PixelCloudGlyph x={94} y={4} scale={0.66} dark={dark} />
+        <PixelCloudGlyph x={8} y={2} scale={0.39} dark={dark} />
+        <PixelCloudGlyph x={94} y={4} scale={0.33} dark={dark} />
         {TREE_PLACEMENTS.map((placement) => (
           <PixelTreeShape
             key={`${placement.x}-${placement.y}`}
@@ -556,8 +562,8 @@ export const PixelPalmBanner = ({
         <rect x="182" y="6" width="6" height="6" fill="#fef08a" />
 
         {/* Layered Pixel Clouds */}
-        <PixelCloudGlyph x={12} y={2} scale={0.9} dark={dark} />
-        <PixelCloudGlyph x={104} y={4} scale={0.75} dark={dark} />
+        <PixelCloudGlyph x={12} y={2} scale={0.45} dark={dark} />
+        <PixelCloudGlyph x={104} y={4} scale={0.375} dark={dark} />
 
         {/* Beach / Ground Dunes */}
         <rect x="0" y="40" width="200" height="8" fill={sandDark} />
@@ -587,7 +593,7 @@ export const PixelPalmBanner = ({
 
       {/* Moving Pixel Birds flying across the banner */}
       <div
-        className="absolute top-2 left-0 h-4 w-6 pointer-events-none"
+        className="absolute top-2 left-0 h-3 w-5 pointer-events-none"
         style={{
           animation: 'bird-fly-banner 16s linear infinite, bird-flight-bob 1.8s ease-in-out infinite',
         }}
@@ -596,7 +602,7 @@ export const PixelPalmBanner = ({
       </div>
 
       <div
-        className="absolute top-5 left-0 h-3.5 w-5 pointer-events-none"
+        className="absolute top-5 left-0 h-3 w-4 pointer-events-none"
         style={{
           animation: 'bird-fly-banner 22s linear infinite 5s, bird-flight-bob 2.2s ease-in-out infinite',
         }}
@@ -605,7 +611,7 @@ export const PixelPalmBanner = ({
       </div>
 
       <div
-        className="absolute top-3 left-0 h-4 w-5 pointer-events-none"
+        className="absolute top-3 left-0 h-3 w-4 pointer-events-none"
         style={{
           animation: 'bird-fly-banner 19s linear infinite 10s, bird-flight-bob 1.5s ease-in-out infinite',
         }}
@@ -693,7 +699,7 @@ export const PixelGameBackground = ({
           animation: 'bird-fly-ltr-1 26s linear infinite, bird-flight-bob 2s ease-in-out infinite',
         }}
       >
-        <PixelBird variant="seagull" className="w-7 h-5 sm:w-9 sm:h-7" />
+        <PixelBird variant="seagull" className="w-6 h-4 sm:w-8 sm:h-6" />
       </div>
 
       {/* Bird 2: Scarlet Parrot - Mid Sky (Left to Right with stagger delay) */}
@@ -705,7 +711,7 @@ export const PixelGameBackground = ({
           animation: 'bird-fly-ltr-2 22s linear infinite 6s, bird-flight-bob 1.6s ease-in-out infinite',
         }}
       >
-        <PixelBird variant="parrot" className="w-6 h-4 sm:w-8 sm:h-6" />
+        <PixelBird variant="parrot" className="w-5 h-3.5 sm:w-7 sm:h-5" />
       </div>
 
       {/* Bird 3: Bluebird - Distant High Sky (Left to Right, smaller scale for depth) */}
@@ -717,40 +723,40 @@ export const PixelGameBackground = ({
           animation: 'bird-fly-ltr-3 32s linear infinite 14s, bird-flight-bob 2.4s ease-in-out infinite',
         }}
       >
-        <PixelBird variant="bluebird" className="w-5 h-3.5 sm:w-6 sm:h-4.5" />
+        <PixelBird variant="bluebird" className="w-4 h-3 sm:w-5 sm:h-4" />
       </div>
 
-      {/* Bird 4: Seagull drifting Right to Left in the Distance */}
+      {/* Bird 4: Distant seagull on its own slower left-to-right path */}
       <div
         className="absolute pointer-events-none z-0"
         style={{
           top: '13%',
           left: 0,
-          animation: 'bird-fly-rtl 30s linear infinite 19s, bird-flight-bob 2.2s ease-in-out infinite',
+          animation: 'bird-fly-ltr-4 34s linear infinite 19s, bird-flight-bob 2.2s ease-in-out infinite',
         }}
       >
-        <PixelBird variant="seagull" flip className="w-6 h-4 sm:w-7 sm:h-5" />
+        <PixelBird variant="seagull" className="w-5 h-3.5 sm:w-6 sm:h-4" />
       </div>
 
       {/* 5. PIXELATED PALM TREES FRAMING THE BACKGROUND */}
 
       {/* Left Foreground Palm Tree (Large, tall, gentle sway) */}
-      <div className="absolute -bottom-4 left-[-18px] sm:left-1 md:left-4 z-0 w-32 sm:w-44 md:w-52 lg:w-60 h-48 sm:h-64 md:h-80 lg:h-96 animate-palm-sway-l opacity-90">
+      <div className="absolute -bottom-4 left-[-10px] sm:left-1 md:left-4 z-0 w-24 sm:w-32 md:w-40 lg:w-48 h-36 sm:h-48 md:h-60 lg:h-72 animate-palm-sway-l opacity-90">
         <PixelPalmTree className="w-full h-full" />
       </div>
 
       {/* Left Midground Palm Tree (Smaller, behind foreground palm) */}
-      <div className="hidden sm:block absolute bottom-0 left-16 md:left-24 lg:left-32 z-0 w-24 sm:w-32 md:w-36 h-36 sm:h-48 md:h-56 animate-palm-sway-r opacity-70">
+      <div className="hidden sm:block absolute bottom-0 left-12 md:left-20 lg:left-28 z-0 w-20 sm:w-24 md:w-28 h-28 sm:h-36 md:h-44 animate-palm-sway-r opacity-70">
         <PixelPalmTree flip className="w-full h-full" />
       </div>
 
       {/* Right Foreground Palm Tree (Large, flipped, gentle sway) */}
-      <div className="absolute -bottom-4 right-[-18px] sm:right-1 md:right-4 z-0 w-32 sm:w-44 md:w-52 lg:w-60 h-48 sm:h-64 md:h-80 lg:h-96 animate-palm-sway-r opacity-90">
+      <div className="absolute -bottom-4 right-[-10px] sm:right-1 md:right-4 z-0 w-24 sm:w-32 md:w-40 lg:w-48 h-36 sm:h-48 md:h-60 lg:h-72 animate-palm-sway-r opacity-90">
         <PixelPalmTree flip className="w-full h-full" />
       </div>
 
       {/* Right Midground Palm Tree (Smaller, behind right palm) */}
-      <div className="hidden sm:block absolute bottom-0 right-16 md:right-24 lg:right-32 z-0 w-24 sm:w-32 md:w-36 h-36 sm:h-48 md:h-56 animate-palm-sway-l opacity-70">
+      <div className="hidden sm:block absolute bottom-0 right-12 md:right-20 lg:right-28 z-0 w-20 sm:w-24 md:w-28 h-28 sm:h-36 md:h-44 animate-palm-sway-l opacity-70">
         <PixelPalmTree className="w-full h-full" />
       </div>
 
