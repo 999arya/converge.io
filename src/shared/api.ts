@@ -5,10 +5,10 @@
 
 import type {
   GameScore,
-  GameSession,
+  PublicGameSession,
   PublicPuzzle,
+  PublicStage2Answer,
   Puzzle,
-  Stage2Answer,
 } from './gameTypes';
 
 export type InitResponse = {
@@ -36,7 +36,7 @@ export type GetPuzzleRequest = {
 
 export type GetPuzzleResponse = {
   puzzle: PublicPuzzle;
-  session?: GameSession;
+  session?: PublicGameSession;
   streak: number;
   totalCompleted: number;
   lifetimeStars: number;
@@ -59,7 +59,7 @@ export type Stage1Response = {
   success: boolean;
   correct: boolean;
   feedback: Stage1Feedback;
-  session: GameSession;
+  session: PublicGameSession;
 };
 
 export type Stage2Request = {
@@ -69,10 +69,11 @@ export type Stage2Request = {
 };
 
 export type Stage2Response = {
-  correct: boolean;
-  answer: Stage2Answer;
-  nextQuestion: number;
-  session: GameSession;
+  answer: PublicStage2Answer;
+  questionIndex: number;
+  totalAnswers: number;
+  complete: boolean;
+  session: PublicGameSession;
 };
 
 export type FinalizeRequest = {
@@ -82,7 +83,7 @@ export type FinalizeRequest = {
 export type FinalizeResponse = {
   score: GameScore;
   puzzle: Puzzle;
-  session: GameSession;
+  session: PublicGameSession;
 };
 
 export type GetStreakResponse = {

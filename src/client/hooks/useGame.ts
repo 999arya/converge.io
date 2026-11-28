@@ -13,17 +13,16 @@ import type {
   Stage2Response,
 } from '../../shared/api';
 import type {
-  DisplaySubredditQuestion,
   GameScore,
-  GameSession,
   GameState,
+  PublicGameSession,
   PublicPuzzle,
   Puzzle,
 } from '../../shared/gameTypes';
 
 type GameStateData = {
   puzzle: PublicPuzzle | Puzzle | null;
-  session: GameSession | null;
+  session: PublicGameSession | null;
   score: GameScore | null;
   streak: number;
   totalCompleted: number;
@@ -49,26 +48,15 @@ const INITIAL_STATE: GameStateData = {
   stage1Feedback: null,
 };
 
-function deriveGameState(session: GameSession | null, loading: boolean): GameState {
+function deriveGameState(session: PublicGameSession | null, loading: boolean): GameState {
   if (loading || !session) return 'INTRO';
   if (session.completedAt || session.stage === 'COMPLETED') return 'COMPLETED';
-  if (session.stage === 'RESULTS' || session.stage2Answers.length >= 3) return 'RESULTS';
 
   if (!session.stage1Correct) {
-    if (session.stage === 'STAGE_1_FAILED' || session.stage1Attempts >= 2) return 'STAGE_1_FAILED';
-    if (session.stage === 'STAGE_1_SECOND_CHANCE' || session.stage1Attempts === 1) {
-      return 'STAGE_1_SECOND_CHANCE';
-    }
-    return 'STAGE_1_READY';
+    return session.stage1Attempts > 0 ? 'STAGE_1_SECOND_CHANCE' : 'STAGE_1_READY';
   }
 
-  if (session.stage === 'STAGE_2_QUESTION_2' || session.stage2CurrentQuestion === 1) {
-    return 'STAGE_2_QUESTION_2';
-  }
-  if (session.stage === 'STAGE_2_QUESTION_3' || session.stage2CurrentQuestion === 2) {
-    return 'STAGE_2_QUESTION_3';
-  }
-  return 'STAGE_2_READY';
+  return session.stage === 'RESULTS' ? 'RESULTS' : 'STAGE_2_READY';
 }
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {
@@ -264,12 +252,12 @@ export const useGame = () => {
   }, [state.puzzle]);
 
   const submitStage2 = useCallback(
-    async (selectedSubreddit: string) => {
+    async (postId: string, selectedSubreddit: string) => {
       const puzzle = state.puzzle;
       const session = state.session;
       if (!puzzle || !session || !session.stage1Correct) return;
 
-      const question = puzzle.subredditQuestions[session.stage2CurrentQuestion];
+      const question = puzzle.subredditQuestions.find((item) => item.postId === postId);
       if (!question) return;
 
       setState((prev) => ({ ...prev, submitting: true, error: null }));
@@ -279,7 +267,7 @@ export const useGame = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             puzzleId: puzzle.id,
-            postId: question.postId,
+            postId,
             selectedSubreddit,
           }),
         });
@@ -293,10 +281,6 @@ export const useGame = () => {
           session: data.session,
           submitting: false,
         }));
-
-        if (data.nextQuestion >= puzzle.subredditQuestions.length) {
-          await finalizeGame();
-        }
       } catch (error) {
         console.error('Stage 2 submit failed:', error);
         setState((prev) => ({
@@ -306,13 +290,8 @@ export const useGame = () => {
         }));
       }
     },
-    [finalizeGame, state.puzzle, state.session]
+    [state.puzzle, state.session]
   );
-
-  const currentQuestion: DisplaySubredditQuestion | null =
-    state.puzzle && state.session && state.session.stage1Correct
-      ? state.puzzle.subredditQuestions[state.session.stage2CurrentQuestion] ?? null
-      : null;
 
   return {
     puzzle: state.puzzle,
@@ -327,7 +306,6 @@ export const useGame = () => {
     selectedPostIds: state.selectedPostIds,
     stage1Feedback: state.stage1Feedback,
     gameState,
-    currentQuestion,
     togglePostSelection,
     isPostSelected,
     clearSelection,

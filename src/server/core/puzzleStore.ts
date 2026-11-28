@@ -14,6 +14,7 @@ import type {
   GameScore,
   GameSession,
   GameState,
+  PublicGameSession,
   Puzzle,
   PuzzlePost,
   Stage2Answer,
@@ -460,7 +461,8 @@ function normalizeStage(value: unknown): GameState {
   }
   if (value === 'STAGE_1_SECOND_CHANCE') return 'STAGE_1_SECOND_CHANCE';
   if (value === 'STAGE_1_SUCCESS') return 'STAGE_1_SUCCESS';
-  if (value === 'STAGE_1_FAILED') return 'STAGE_1_FAILED';
+  // Legacy two-attempt sessions are reopened so players can keep trying.
+  if (value === 'STAGE_1_FAILED') return 'STAGE_1_READY';
   if (value === 'STAGE_2' || value === 'STAGE_2_READY') return 'STAGE_2_READY';
   if (value === 'STAGE_2_QUESTION_2') return 'STAGE_2_QUESTION_2';
   if (value === 'STAGE_2_QUESTION_3') return 'STAGE_2_QUESTION_3';
@@ -543,6 +545,26 @@ async function readSession(userId: string, puzzleId: string): Promise<GameSessio
 
 async function saveSession(userId: string, session: GameSession): Promise<void> {
   await redis.set(sessionKey(userId, session.puzzleId), JSON.stringify(session));
+}
+
+export function toPublicSession(session: GameSession): PublicGameSession {
+  return {
+    puzzleId: session.puzzleId,
+    stage: session.stage,
+    selectedPostIds: [...session.selectedPostIds],
+    stage1Attempts: session.stage1Attempts,
+    stage1Correct: session.stage1Correct,
+    stage2Answers: session.stage2Answers.map((answer) => ({
+      postId: answer.postId,
+      selectedSubreddit: answer.selectedSubreddit,
+      lockedAt: answer.lockedAt,
+    })),
+    stage2CurrentQuestion: session.stage2CurrentQuestion,
+    startedAt: session.startedAt,
+    completedAt: session.completedAt,
+    score: session.score,
+    streak: session.streak,
+  };
 }
 
 export async function getPuzzle(puzzleId?: string): Promise<Puzzle | null> {
@@ -633,17 +655,7 @@ export async function submitStage1(
     };
   }
 
-  if (session.stage1Attempts >= 2) {
-    return {
-      success: false,
-      correct: false,
-      attempts: session.stage1Attempts,
-      correctCount,
-      feedback: { correctCount, attempts: session.stage1Attempts, canRetry: false, failed: true },
-      session,
-    };
-  }
-
+  // Unlimited attempts – no cap enforced
   session.selectedPostIds = selectedPostIds;
   session.stage1Attempts += 1;
 
@@ -663,23 +675,17 @@ export async function submitStage1(
     };
   }
 
-  const failed = session.stage1Attempts >= 2;
-  session.stage = failed ? 'STAGE_1_FAILED' : 'STAGE_1_SECOND_CHANCE';
+  // Always allow retry – never mark as FAILED
+  session.stage = 'STAGE_1_SECOND_CHANCE';
   await saveSession(userId, session);
   return {
     success: false,
     correct: false,
     attempts: session.stage1Attempts,
     correctCount,
-    feedback: { correctCount, attempts: session.stage1Attempts, canRetry: !failed, failed },
+    feedback: { correctCount, attempts: session.stage1Attempts, canRetry: true, failed: false },
     session,
   };
-}
-
-function stageForQuestion(questionIndex: number): GameState {
-  if (questionIndex === 1) return 'STAGE_2_QUESTION_2';
-  if (questionIndex === 2) return 'STAGE_2_QUESTION_3';
-  return 'STAGE_2_READY';
 }
 
 export async function submitStage2(
@@ -688,52 +694,59 @@ export async function submitStage2(
   postId: string,
   selectedSubreddit: string
 ): Promise<{
-  correct: boolean;
   answer: Stage2Answer;
-  nextQuestion: number;
+  questionIndex: number;
+  totalAnswers: number;
+  complete: boolean;
   session: GameSession;
 }> {
   const puzzle = await getPuzzle(puzzleId);
   if (!puzzle) throw new Error('Puzzle not found');
 
   const session = await readSession(userId, puzzleId);
+  if (session.completedAt || session.stage === 'COMPLETED') {
+    throw new Error('This daily puzzle is already complete');
+  }
   if (!session.stage1Correct) throw new Error('Stage 1 is not complete');
 
-  const questionIndex = session.stage2CurrentQuestion;
-  const existingAnswer = session.stage2Answers[questionIndex];
-  if (existingAnswer) {
-    return {
-      correct: existingAnswer.isCorrect,
-      answer: existingAnswer,
-      nextQuestion: session.stage2CurrentQuestion,
-      session,
-    };
-  }
-
+  const questionIndex = puzzle.subredditQuestions.findIndex(
+    (question) => question.postId === postId
+  );
   const question = puzzle.subredditQuestions[questionIndex];
-  if (!question) throw new Error('No more questions');
-  if (question.postId !== postId) throw new Error('Invalid post for current question');
+  if (!question) throw new Error('Invalid post for this puzzle');
   if (!question.options.includes(selectedSubreddit)) throw new Error('Invalid option');
 
+  // Unlimited attempts: replace any previous answer instead of locking it.
   const answer: Stage2Answer = {
     postId,
     selectedSubreddit,
     isCorrect: selectedSubreddit === question.correctSubreddit,
     lockedAt: Date.now(),
   };
+  const existingIndex = session.stage2Answers.findIndex((item) => item.postId === postId);
+  if (existingIndex >= 0) {
+    session.stage2Answers[existingIndex] = answer;
+  } else {
+    session.stage2Answers.push(answer);
+  }
 
-  session.stage2Answers.push(answer);
-  session.stage2CurrentQuestion += 1;
-  session.stage =
-    session.stage2CurrentQuestion >= puzzle.subredditQuestions.length
-      ? 'RESULTS'
-      : stageForQuestion(session.stage2CurrentQuestion);
+  const questionOrder = new Map(
+    puzzle.subredditQuestions.map((item, index) => [item.postId, index])
+  );
+  session.stage2Answers.sort(
+    (a, b) => (questionOrder.get(a.postId) ?? 0) - (questionOrder.get(b.postId) ?? 0)
+  );
+
+  session.stage2CurrentQuestion = questionIndex;
+  const complete = session.stage2Answers.length === puzzle.subredditQuestions.length;
+  session.stage = complete ? 'RESULTS' : 'STAGE_2_READY';
 
   await saveSession(userId, session);
   return {
-    correct: answer.isCorrect,
     answer,
-    nextQuestion: session.stage2CurrentQuestion,
+    questionIndex,
+    totalAnswers: session.stage2Answers.length,
+    complete,
     session,
   };
 }
@@ -813,8 +826,7 @@ export async function calculateScore(userId: string, puzzleId: string): Promise<
     };
   }
 
-  const stage1Finished = session.stage === 'STAGE_1_FAILED' || session.stage1Attempts >= 2;
-  if (!session.stage1Correct && !stage1Finished) {
+  if (!session.stage1Correct) {
     throw new Error('Stage 1 is still in progress');
   }
   if (

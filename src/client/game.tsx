@@ -1,6 +1,6 @@
 /**
  * Converge Game - Expanded View Entry Point
- * Main game experience when user taps "Tap to Start"
+ * Light Mode Only - Minecraft Boxy Aesthetic
  */
 
 import './index.css';
@@ -13,9 +13,9 @@ import { GameBoard } from './components/GameBoard';
 export const App = () => {
   return (
     <StrictMode>
-      <div className="flex flex-col h-full min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="flex flex-col min-h-screen bg-[#faf8f5] text-zinc-900">
         <Header />
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 w-full overflow-y-auto">
           <GameBoard />
         </main>
       </div>

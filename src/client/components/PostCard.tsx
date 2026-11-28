@@ -1,5 +1,5 @@
 /**
- * PostCard Component - Minecraft Boxy Reddit Post Tile
+ * PostCard Component - Light Mode Minecraft Boxy Reddit Post Tile
  * Displays a candidate post with tactile selection and preview.
  */
 
@@ -52,7 +52,7 @@ export const PostCard = ({
   return (
     <div
       onClick={handleCardClick}
-      className={`mc-card relative bg-white dark:bg-zinc-900 flex flex-col justify-between overflow-hidden transition-all duration-100 ${
+      className={`mc-card relative bg-white flex flex-col justify-between overflow-hidden transition-all duration-100 ${
         selected ? 'mc-card-selected' : 'mc-card-hover'
       } ${disabled ? 'opacity-65 cursor-not-allowed' : 'cursor-pointer'}`}
       role="checkbox"
@@ -67,7 +67,7 @@ export const PostCard = ({
     >
       {/* Top Media Slot / Thumbnail Frame */}
       {showThumbnail ? (
-        <div className="mc-slot w-full aspect-video max-h-44 overflow-hidden relative group">
+        <div className="mc-slot w-full aspect-video max-h-44 overflow-hidden relative group bg-zinc-900">
           <img
             src={post.thumbnailUrl}
             alt=""
@@ -75,44 +75,44 @@ export const PostCard = ({
             loading="lazy"
             onError={() => setImageFailed(true)}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
         </div>
       ) : (
-        <div className="h-2 w-full bg-gradient-to-r from-amber-400 via-emerald-500 to-cyan-500 border-b-2 border-zinc-950" />
+        <div className="h-2.5 w-full bg-gradient-to-r from-amber-400 via-emerald-500 to-sky-500 border-b-2 border-zinc-950" />
       )}
 
       {/* Card Body */}
       <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between">
         <div>
           {/* Metadata Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 mb-2">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-mono text-zinc-600 mb-2">
             <div className="flex items-center gap-1.5">
               {isPostRevealed ? (
-                <span className="mc-badge bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 text-[9px] font-bold">
+                <span className="mc-badge bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[9px] font-bold">
                   {post.subreddit}
                 </span>
               ) : (
-                <span className="mc-badge bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-1.5 py-0.5 text-[9px]">
+                <span className="mc-badge bg-zinc-100 text-zinc-800 px-1.5 py-0.5 text-[9px]">
                   r/???
                 </span>
               )}
-              <span className="truncate max-w-[110px]">u/{post.author}</span>
+              <span className="truncate max-w-[120px] font-semibold">u/{post.author}</span>
             </div>
 
-            <span className="mc-badge bg-amber-50 dark:bg-zinc-800 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 text-[9px]">
+            <span className="mc-badge bg-amber-100 text-amber-900 px-1.5 py-0.5 text-[9px] font-bold">
               ↑ {post.score.toLocaleString()}
             </span>
           </div>
 
           {/* Title */}
-          <h3 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2">
+          <h3 className="font-bold text-xs sm:text-sm text-zinc-950 leading-snug line-clamp-2">
             {post.title}
           </h3>
 
           {/* Content snippet */}
           {post.content && (
             <p
-              className={`mt-1.5 text-[11px] sm:text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed font-body ${
+              className={`mt-1.5 text-[11px] sm:text-xs text-zinc-700 leading-relaxed font-body ${
                 expanded ? 'whitespace-pre-wrap' : 'line-clamp-2'
               }`}
             >
@@ -127,7 +127,7 @@ export const PostCard = ({
                 e.stopPropagation();
                 setExpanded((prev) => !prev);
               }}
-              className="mt-1 text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+              className="mt-1 text-[10px] font-mono font-bold text-emerald-700 hover:underline cursor-pointer"
             >
               {expanded ? '▲ Show less' : '▼ Read full'}
             </button>
@@ -135,17 +135,17 @@ export const PostCard = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="mt-3 pt-2.5 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+        <div className="mt-3 pt-2.5 border-t border-zinc-200 flex items-center justify-between">
           <button
             type="button"
             onClick={openOriginal}
-            className="text-[10px] font-mono text-zinc-500 hover:text-amber-600 dark:hover:text-amber-400 underline flex items-center gap-1 cursor-pointer"
+            className="text-[10px] font-mono text-zinc-600 hover:text-amber-700 underline flex items-center gap-1 cursor-pointer font-semibold"
           >
-            <span>Original Reddit Post</span>
+            <span>Original Post</span>
             <span>↗</span>
           </button>
 
-          <span className="text-[10px] font-mono font-bold text-zinc-400">
+          <span className="text-[10px] font-mono font-bold text-zinc-500">
             {selected ? 'SELECTED' : 'TAP TO SELECT'}
           </span>
         </div>

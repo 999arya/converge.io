@@ -30,6 +30,7 @@ import {
   seedPuzzles,
   submitStage1,
   submitStage2,
+  toPublicSession,
 } from '../core/puzzleStore';
 
 export const gameApi = new Hono();
@@ -92,7 +93,7 @@ gameApi.get('/puzzle', async (c) => {
 
     return c.json<GetPuzzleResponse>({
       puzzle: publicPuzzle,
-      session: session ?? undefined,
+      session: session ? toPublicSession(session) : undefined,
       streak: progress.streak,
       totalCompleted: progress.totalCompleted,
       lifetimeStars: progress.lifetimeStars,
@@ -137,7 +138,7 @@ gameApi.post('/stage1', async (c) => {
       success: result.success,
       correct: result.correct,
       feedback: result.feedback,
-      session: result.session,
+      session: toPublicSession(result.session),
     });
   } catch (error) {
     console.error('Stage 1 submit error:', error);
@@ -170,10 +171,15 @@ gameApi.post('/stage2', async (c) => {
 
     const result = await submitStage2(auth.userId, puzzleId, postId, selectedSubreddit);
     return c.json<Stage2Response>({
-      correct: result.correct,
-      answer: result.answer,
-      nextQuestion: result.nextQuestion,
-      session: result.session,
+      answer: {
+        postId: result.answer.postId,
+        selectedSubreddit: result.answer.selectedSubreddit,
+        lockedAt: result.answer.lockedAt,
+      },
+      questionIndex: result.questionIndex,
+      totalAnswers: result.totalAnswers,
+      complete: result.complete,
+      session: toPublicSession(result.session),
     });
   } catch (error) {
     console.error('Stage 2 submit error:', error);
@@ -214,20 +220,22 @@ gameApi.post('/finalize', async (c) => {
     }
     const { session } = await getSession(auth.userId, puzzleId);
 
+    const completedSession = session ?? {
+      puzzleId,
+      stage: 'COMPLETED' as const,
+      selectedPostIds: [],
+      stage1Attempts: 0,
+      stage1Correct: false,
+      stage2Answers: [],
+      stage2CurrentQuestion: 0,
+      startedAt: Date.now(),
+      score,
+    };
+
     return c.json<FinalizeResponse>({
       score,
       puzzle,
-      session: session ?? {
-        puzzleId,
-        stage: 'COMPLETED',
-        selectedPostIds: [],
-        stage1Attempts: 0,
-        stage1Correct: false,
-        stage2Answers: [],
-        stage2CurrentQuestion: 0,
-        startedAt: Date.now(),
-        score,
-      },
+      session: toPublicSession(completedSession),
     });
   } catch (error) {
     console.error('Finalize error:', error);

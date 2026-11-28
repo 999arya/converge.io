@@ -1,5 +1,5 @@
 /**
- * Header Component - Minecraft Boxy HUD Header
+ * Header Component - Light Theme Minecraft Boxy HUD Header
  * Shows brand, flair tier XP bar, streak counter, and audio toggle.
  */
 
@@ -20,7 +20,6 @@ export const Header = () => {
   };
 
   // Calculate XP progress to next flair tier
-  // Tiers: Novice (0), Connector (5), Pattern Seeker (15), Community Explorer (30), Converger (60)
   const getTierTarget = (completed: number): { current: number; max: number; nextName: string } => {
     if (completed < 5) return { current: completed, max: 5, nextName: 'Connector' };
     if (completed < 15) return { current: completed - 5, max: 10, nextName: 'Pattern Seeker' };
@@ -45,7 +44,7 @@ export const Header = () => {
       });
 
   return (
-    <header className="sticky top-0 z-40 bg-amber-50 dark:bg-zinc-950 border-b-2 border-zinc-950 shadow-[0_3px_0_#090d16] px-3 sm:px-6 py-2.5 transition-colors">
+    <header className="sticky top-0 z-40 bg-white border-b-2 border-zinc-950 shadow-[0_3px_0_#090d16] px-3 sm:px-6 py-2.5">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
         {/* Brand / Logo */}
         <div className="flex items-center gap-2.5">
@@ -54,22 +53,22 @@ export const Header = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-pixel text-xs sm:text-sm tracking-wider text-zinc-900 dark:text-amber-400 uppercase select-none">
+              <h1 className="font-pixel text-xs sm:text-sm tracking-wider text-zinc-950 uppercase select-none">
                 CONVERGE
               </h1>
               <span className="hidden sm:inline-block mc-badge bg-zinc-900 text-amber-300 text-[8px] px-1.5 py-0.5 uppercase">
                 {displayDate}
               </span>
             </div>
-            <p className="text-[10px] font-mono text-zinc-600 dark:text-zinc-400">
+            <p className="text-[10px] font-mono text-zinc-600">
               DAILY REDDIT PUZZLE
             </p>
           </div>
         </div>
 
-        {/* Center: Minecraft XP Bar (Desktop / Tablet) */}
+        {/* Center: Minecraft XP Bar */}
         <div className="hidden md:flex flex-col items-center min-w-[200px] max-w-[260px] flex-1 px-4">
-          <div className="w-full flex items-center justify-between text-[9px] font-mono mb-1 text-zinc-600 dark:text-zinc-400 font-bold uppercase">
+          <div className="w-full flex items-center justify-between text-[9px] font-mono mb-1 text-zinc-700 font-bold uppercase">
             <span>Tier: {flairTier}</span>
             <span>
               {xp.current}/{xp.max} XP
@@ -84,7 +83,7 @@ export const Header = () => {
         <div className="flex items-center gap-2">
           {/* Daily Streak Badge */}
           <div
-            className="mc-badge bg-amber-100 dark:bg-zinc-900 text-amber-600 dark:text-amber-400 px-2 py-1 text-[10px] sm:text-xs font-bold"
+            className="mc-badge bg-amber-100 text-amber-900 px-2.5 py-1 text-[10px] sm:text-xs font-bold"
             title="Current Daily Streak"
           >
             <span>🔥</span>
@@ -95,8 +94,8 @@ export const Header = () => {
           <button
             type="button"
             onClick={handleToggleSound}
-            className="mc-btn mc-btn-dark w-8 h-8 text-xs p-0 flex items-center justify-center"
-            title={muted ? 'Unmute 8-bit sound effects' : 'Mute sound effects'}
+            className="mc-btn mc-btn-slate w-8 h-8 text-xs p-0 flex items-center justify-center"
+            title={muted ? 'Unmute sound effects' : 'Mute sound effects'}
             aria-label={muted ? 'Unmute sound effects' : 'Mute sound effects'}
           >
             <span>{muted ? '🔇' : '🔊'}</span>

@@ -1,9 +1,11 @@
 @import 'tailwindcss';
 
 /* Custom typography */
-body {
+html, body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  background-color: #faf8f5;
+  color: #090d16;
 }
 
 .font-pixel {
@@ -37,7 +39,7 @@ body {
 }
 
 /* =========================================================
-   Minecraft & GoaBuilds Boxy UI System
+   Light Mode Only - Minecraft & GoaBuilds Boxy UI System
    ========================================================= */
 
 /* 3D Extruded Buttons */
@@ -74,7 +76,7 @@ body {
   transform: none;
 }
 
-/* Button Color Variants */
+/* Button Color Variants (Light Theme) */
 .mc-btn-gold {
   background-color: #f59e0b;
   color: #090d16;
@@ -95,11 +97,20 @@ body {
 
 .mc-btn-dark {
   background-color: #1e293b;
-  color: #f8fafc;
+  color: #ffffff;
   border-color: #090d16;
 }
 .mc-btn-dark:hover:not(:disabled) {
   background-color: #334155;
+}
+
+.mc-btn-slate {
+  background-color: #f1f5f9;
+  color: #090d16;
+  border-color: #090d16;
+}
+.mc-btn-slate:hover:not(:disabled) {
+  background-color: #e2e8f0;
 }
 
 .mc-btn-red {
@@ -120,19 +131,11 @@ body {
   background-color: #0ea5e9;
 }
 
-.mc-btn-emerald {
-  background-color: #059669;
-  color: #ffffff;
-  border-color: #090d16;
-}
-.mc-btn-emerald:hover:not(:disabled) {
-  background-color: #10b981;
-}
-
 /* Minecraft Boxy Card */
 .mc-card {
   border: 2px solid #090d16;
   box-shadow: 4px 4px 0 #090d16;
+  background-color: #ffffff;
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
 
@@ -151,54 +154,42 @@ body {
   background-color: #f0fdf4 !important;
 }
 
-.dark .mc-card-selected {
-  background-color: rgba(22, 163, 74, 0.18) !important;
-  box-shadow: 0 0 0 2px #22c55e, 4px 6px 0 #000000 !important;
-}
-
-/* Minecraft Inventory Slot (Beveled Inner Shadow) */
+/* Minecraft Inventory Slot (Beveled Inner Shadow - Light Theme) */
 .mc-slot {
-  background-color: #1e293b;
-  border-top: 3px solid #090d16;
-  border-left: 3px solid #090d16;
-  border-bottom: 3px solid #475569;
-  border-right: 3px solid #475569;
-  box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.6);
+  background-color: #f1f5f9;
+  border-top: 3px solid #64748b;
+  border-left: 3px solid #64748b;
+  border-bottom: 3px solid #e2e8f0;
+  border-right: 3px solid #e2e8f0;
+  box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.2);
   position: relative;
 }
 
 .mc-slot-empty {
-  background-color: #0f172a;
-  border-top: 2px solid #020617;
-  border-left: 2px solid #020617;
-  border-bottom: 2px solid #334155;
-  border-right: 2px solid #334155;
+  background-color: #f8fafc;
+  border-top: 2px solid #94a3b8;
+  border-left: 2px solid #94a3b8;
+  border-bottom: 2px solid #cbd5e1;
+  border-right: 2px solid #cbd5e1;
 }
 
 .mc-slot-filled {
-  background-color: #15803d;
-  border-top: 3px solid #14532d;
-  border-left: 3px solid #14532d;
+  background-color: #22c55e;
+  border-top: 3px solid #16a34a;
+  border-left: 3px solid #16a34a;
   border-bottom: 3px solid #86efac;
   border-right: 3px solid #86efac;
-  box-shadow: 0 0 12px rgba(34, 197, 94, 0.45);
-}
-
-/* Minecraft Hotbar Frame */
-.mc-hotbar {
-  background-color: #334155;
-  border: 3px solid #090d16;
-  box-shadow: 0 -4px 0 #090d16, 0 4px 0 #090d16, 4px 4px 0 #090d16, -4px 4px 0 #090d16;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.45);
 }
 
 /* Minecraft XP Bar */
 .mc-xp-container {
   height: 12px;
-  background-color: #090d16;
-  border: 2px solid #334155;
+  background-color: #e2e8f0;
+  border: 2px solid #090d16;
   position: relative;
   overflow: hidden;
-  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.8);
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.3);
 }
 
 .mc-xp-fill {
@@ -231,50 +222,31 @@ body {
   position: relative;
 }
 
-.mc-banner::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Pixel Grid Texture Background */
+/* Pixel Grid Texture Background (Light Mode) */
 .bg-pixel-grid {
-  background-image: radial-gradient(#94a3b8 1.2px, transparent 1.2px);
-  background-size: 16px 16px;
-}
-
-.dark .bg-pixel-grid {
-  background-image: radial-gradient(#334155 1.2px, transparent 1.2px);
+  background-color: #faf8f5;
+  background-image: radial-gradient(#d1d5db 1.2px, transparent 1.2px);
   background-size: 16px 16px;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #e2e8f0;
-  border-left: 2px solid #090d16;
-}
-
-.dark ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #f1f5f9;
   border-left: 2px solid #090d16;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #64748b;
+  background: #94a3b8;
   border: 2px solid #090d16;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #64748b;
 }
 
 /* Keyframe Animations */

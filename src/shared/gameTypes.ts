@@ -102,6 +102,16 @@ export type GameSession = {
   streak?: number;
 };
 
+/** Answers sent to the client never include correctness before the final reveal. */
+export type PublicStage2Answer = Omit<Stage2Answer, 'isCorrect'> & {
+  isCorrect?: undefined;
+};
+
+/** Client-facing session. Correctness is derived only from the revealed puzzle. */
+export type PublicGameSession = Omit<GameSession, 'stage2Answers'> & {
+  stage2Answers: PublicStage2Answer[];
+};
+
 export type GameScore = {
   connectionSolved: boolean;
   correctSubredditGuesses: number;

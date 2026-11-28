@@ -15,15 +15,14 @@ Each daily puzzle contains:
 ### Stage 1: Find the connection
 
 - The player selects exactly 3 posts.
-- The player gets 2 total attempts.
-- A wrong first attempt reveals how many selected posts were connected and allows one retry.
-- A wrong second attempt ends Stage 1.
+- Attempts are unlimited: a wrong submission reveals how many selected posts were connected, and the player can keep changing the selection.
+- Stage 1 ends only when the correct three posts are found.
 
 ### Stage 2: Identify source subreddits
 
 - For each connected post, the player chooses from 3 subreddit options.
-- Each question has one attempt.
-- Answers lock permanently.
+- Answers are editable until the final reveal, so every question has unlimited attempts.
+- Correctness is hidden until results are revealed.
 - Each correct answer earns 1 star.
 
 ## Project Structure
